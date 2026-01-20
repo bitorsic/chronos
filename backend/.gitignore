@@ -1,0 +1,6 @@
+.env
+.env.prod
+.env.dev
+logs/
+temp/
+node_modules/
