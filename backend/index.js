@@ -20,6 +20,9 @@ app.use(cors({
 	credentials: true,
 }));
 
+// Routes
+app.use('/api/users', require('./routes/userRoutes'));
+
 if (process.env.NODE_ENV !== "prod") {
 	// Swagger configuration
 	const swaggerUi = require('swagger-ui-express');
