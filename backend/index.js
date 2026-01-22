@@ -21,7 +21,8 @@ app.use(cors({
 }));
 
 // Routes
-app.use('/api/users', require('./routes/userRoutes'));
+app.use('/users', require('./routes/userRoutes'));
+app.use('/jobs', require('./routes/jobRoutes'));
 
 if (process.env.NODE_ENV !== "prod") {
 	// Swagger configuration
@@ -40,14 +41,15 @@ if (process.env.NODE_ENV !== "prod") {
 		await mongoose.connect(process.env.DB_URL);
 		console.log("[+] Connection Successful");
 
-		// Start the habit notification worker
-		// const { habitNotificationWorker } = require('./services/habitNotificationSchedulerService');
-		// console.log("[+] Habit notification worker started");
+		// Start the job workers
+		const emailReminderWorker = require('./workers/emailReminderWorker');
+		console.log("[+] Email reminder worker started");
 
-		// Start the subscription status worker
-		// const { scheduleSubscriptionStatusWorker } = require('./services/subscriptionStatusService');
-		// await scheduleSubscriptionStatusWorker();
-		// console.log("[+] Subscription status worker started");
+		const emailPricesWorker = require('./workers/emailPricesWorker');
+		console.log("[+] Email prices worker started");
+
+		const storePricesWorker = require('./workers/storePricesWorker');
+		console.log("[+] Store prices worker started");
 
 		const port = process.env.PORT || 8080;
 		app.listen(port, (err) => {

@@ -9,6 +9,10 @@ const metadataItemSchema = new mongoose.Schema({
 		type: Number,
 		required: [true, 'price in the metadata is required'],
 	},
+	currency: {
+		type: String,
+		required: [true, 'currency in the metadata is required'],
+	},
 }, { _id: false });
 
 module.exports = metadataItemSchema;

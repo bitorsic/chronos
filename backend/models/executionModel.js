@@ -40,6 +40,10 @@ const storageExecutionModel = executionModel.discriminator(executionTypes.STORAG
 		type: Number,
 		required: [true, 'price is required for storage execution'],
 	},
+	currency: {
+		type: String,
+		required: [true, 'currency is required for storage execution'],
+	},
 	fetchedAt: {
 		type: Date,
 		required: [true, 'fetchedAt is required for storage execution'],
@@ -73,5 +77,3 @@ const emailExecutionModel = executionModel.discriminator(executionTypes.EMAIL, n
 }));
 
 module.exports = { executionModel, storageExecutionModel, emailExecutionModel };
-
-module.exports = executionModel;
