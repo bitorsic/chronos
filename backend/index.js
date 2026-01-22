@@ -23,6 +23,9 @@ app.use(cors({
 // Routes
 app.use('/users', require('./routes/userRoutes'));
 app.use('/jobs', require('./routes/jobRoutes'));
+app.use('/prices', require('./routes/pricesRoutes'));
+app.use('/emails', require('./routes/emailsRoutes'));
+app.use('/admin', require('./routes/adminRoutes'));
 
 if (process.env.NODE_ENV !== "prod") {
 	// Swagger configuration

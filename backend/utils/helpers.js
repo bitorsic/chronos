@@ -1,7 +1,7 @@
 const crypto = require('crypto');
 const axios = require('axios');
 const stockMetadataModel = require('../models/stockMetadataModel');
-const { scheduleTypes } = require('./constants');
+const { scheduleTypes, scheduleTypes: { CRON } } = require('./constants');
 
 const generateSecurePassword = (length = 16) => {
 	const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz123456789";
@@ -92,8 +92,38 @@ const getCurrencyForSymbol = async (symbol, apiKey) => {
 	}
 };
 
+// Helper function to remove job from BullMQ queue
+const removeJobFromQueue = async (queue, jobId, scheduleType) => {
+	try {
+		const bullmqJobId = jobId.toString();
+
+		// For CRON jobs, we need to remove the repeatable job
+		if (scheduleType === CRON) {
+			const repeatableJobs = await queue.getRepeatableJobs();
+			const jobToRemove = repeatableJobs.find(j => j.id === bullmqJobId);
+			
+			if (jobToRemove) {
+				await queue.removeRepeatableByKey(jobToRemove.key);
+				console.log(`[Helper] Removed repeatable job ${bullmqJobId} from queue`);
+			}
+		}
+
+		// For all job types (IMMEDIATE, ONCE, CRON), try to remove any pending jobs
+		// This handles jobs that haven't been processed yet
+		const job = await queue.getJob(bullmqJobId);
+		if (job) {
+			await job.remove();
+			console.log(`[Helper] Removed job ${bullmqJobId} from queue`);
+		}
+	} catch (err) {
+		console.error(`[Helper] Error removing job ${jobId} from queue:`, err.message);
+		// Don't throw - we still want to delete from DB even if BullMQ removal fails
+	}
+};
+
 module.exports = {
 	generateSecurePassword,
 	addJobToQueue,
+	removeJobFromQueue,
 	getCurrencyForSymbol,
 };
