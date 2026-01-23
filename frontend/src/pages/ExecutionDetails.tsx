@@ -1,0 +1,261 @@
+import { useEffect, useState } from 'react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import { format } from 'date-fns';
+import toast from 'react-hot-toast';
+import Layout from '../components/Layout';
+import Card from '../components/Card';
+import Badge from '../components/Badge';
+import Button from '../components/Button';
+import Spinner from '../components/Spinner';
+import { jobService } from '../services/jobService';
+import type { Execution } from '../types/execution';
+import type { Job } from '../types/job';
+
+export default function ExecutionDetails() {
+  const { executionId } = useParams<{ executionId: string }>();
+  const navigate = useNavigate();
+  const [execution, setExecution] = useState<Execution | null>(null);
+  const [job, setJob] = useState<Job | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (executionId) {
+      loadExecutionDetails();
+    }
+  }, [executionId]);
+
+  const loadExecutionDetails = async () => {
+    if (!executionId) return;
+
+    setIsLoading(true);
+    try {
+      // Note: You'll need to add a getExecution endpoint to jobService
+      // For now, we'll fetch executions and find the one we need
+      const executionsData = await jobService.getExecutions({ page: 1, limit: 100 });
+      const foundExecution = executionsData.data.find((e) => e._id === executionId);
+      
+      if (!foundExecution) {
+        toast.error('Execution not found');
+        navigate('/executions');
+        return;
+      }
+
+      setExecution(foundExecution);
+
+      // Load job details
+      const jobData = await jobService.getJob(foundExecution.jobId);
+      setJob(jobData);
+    } catch (error: any) {
+      toast.error('Failed to load execution details');
+      navigate('/executions');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="flex justify-center py-12">
+          <Spinner size="lg" />
+        </div>
+      </Layout>
+    );
+  }
+
+  if (!execution) {
+    return (
+      <Layout>
+        <div className="text-center py-12">
+          <h2 className="text-2xl font-bold text-gray-900">Execution not found</h2>
+        </div>
+      </Layout>
+    );
+  }
+
+  return (
+    <Layout>
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-start justify-between">
+          <div>
+            <div className="flex items-center space-x-3">
+              <h1 className="text-3xl font-bold text-gray-900">Execution Details</h1>
+              <Badge variant={execution.status === 'SUCCESS' ? 'success' : 'error'}>
+                {execution.status}
+              </Badge>
+            </div>
+            <p className="text-gray-600 mt-2">
+              {execution.jobType.replace(/_/g, ' ')}
+            </p>
+          </div>
+          <Button variant="secondary" onClick={() => navigate('/executions')}>
+            Back to Executions
+          </Button>
+        </div>
+
+        {/* Execution Information */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card title="Execution Information">
+            <dl className="space-y-3">
+              <div>
+                <dt className="text-sm font-medium text-gray-500">Execution ID</dt>
+                <dd className="text-sm text-gray-900 mt-1 font-mono">{execution._id}</dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-gray-500">Job Type</dt>
+                <dd className="text-sm text-gray-900 mt-1">
+                  {execution.jobType.replace(/_/g, ' ')}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-gray-500">Status</dt>
+                <dd className="text-sm text-gray-900 mt-1">{execution.status}</dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-gray-500">Executed At</dt>
+                <dd className="text-sm text-gray-900 mt-1">
+                  {format(new Date(execution.executedAt), 'MMMM d, yyyy HH:mm:ss')}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-gray-500">Job ID</dt>
+                <dd className="text-sm mt-1">
+                  <Link
+                    to={`/jobs/${execution.jobId}`}
+                    className="text-primary hover:text-primary-hover font-mono"
+                  >
+                    {execution.jobId}
+                  </Link>
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-gray-500">User ID</dt>
+                <dd className="text-sm text-gray-900 mt-1 font-mono">{execution.userId}</dd>
+              </div>
+            </dl>
+          </Card>
+
+          {/* Job Information */}
+          {job && (
+            <Card title="Related Job">
+              <dl className="space-y-3">
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">Job Type</dt>
+                  <dd className="text-sm text-gray-900 mt-1">{job.jobType.replace(/_/g, ' ')}</dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">Schedule Type</dt>
+                  <dd className="text-sm text-gray-900 mt-1">{job.schedule.scheduleType}</dd>
+                </div>
+                {job.schedule.cronExpression && (
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">Cron Expression</dt>
+                    <dd className="text-sm text-gray-900 mt-1 font-mono bg-gray-100 px-2 py-1 rounded">
+                      {job.schedule.cronExpression}
+                    </dd>
+                  </div>
+                )}
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">Job Status</dt>
+                  <dd className="text-sm text-gray-900 mt-1">{job.status}</dd>
+                </div>
+                {job.data.subject && (
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">Subject</dt>
+                    <dd className="text-sm text-gray-900 mt-1">{job.data.subject}</dd>
+                  </div>
+                )}
+                {job.data.stockSymbols && job.data.stockSymbols.length > 0 && (
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500 mb-2">Stock Symbols</dt>
+                    <dd className="flex flex-wrap gap-2">
+                      {job.data.stockSymbols.map((symbol) => (
+                        <Badge key={symbol} variant="info">
+                          {symbol}
+                        </Badge>
+                      ))}
+                    </dd>
+                  </div>
+                )}
+              </dl>
+              <div className="mt-4">
+                <Link to={`/jobs/${job._id}`}>
+                  <Button variant="secondary" className="w-full">
+                    View Full Job Details
+                  </Button>
+                </Link>
+              </div>
+            </Card>
+          )}
+        </div>
+
+        {/* Error Details (if failed) */}
+        {execution.status === 'FAILED' && execution.error && (
+          <Card title="Error Details">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <div className="flex items-start">
+                <svg
+                  className="w-5 h-5 text-red-600 mt-0.5 mr-3 flex-shrink-0"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <div className="flex-1">
+                  <h4 className="text-sm font-medium text-red-800 mb-1">Execution Failed</h4>
+                  <p className="text-sm text-red-700 whitespace-pre-wrap">{execution.error}</p>
+                </div>
+              </div>
+            </div>
+          </Card>
+        )}
+
+        {/* Metadata */}
+        {execution.metadata && Object.keys(execution.metadata).length > 0 && (
+          <Card title="Metadata">
+            <pre className="bg-gray-50 p-4 rounded-lg overflow-x-auto text-sm">
+              {JSON.stringify(execution.metadata, null, 2)}
+            </pre>
+          </Card>
+        )}
+
+        {/* Quick Actions */}
+        <Card title="Quick Actions">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <Link to={`/jobs/${execution.jobId}`}>
+              <Button variant="secondary" className="w-full">
+                View Related Job
+              </Button>
+            </Link>
+            <Link to="/executions">
+              <Button variant="secondary" className="w-full">
+                View All Executions
+              </Button>
+            </Link>
+            {execution.jobType === 'EMAIL_PRICES' && (
+              <Link to={`/jobs/${execution.jobId}/emails`}>
+                <Button variant="secondary" className="w-full">
+                  View Sent Emails
+                </Button>
+              </Link>
+            )}
+            {execution.jobType === 'STORE_PRICES' && (
+              <Link to={`/jobs/${execution.jobId}/prices`}>
+                <Button variant="secondary" className="w-full">
+                  View Stored Prices
+                </Button>
+              </Link>
+            )}
+          </div>
+        </Card>
+      </div>
+    </Layout>
+  );
+}
