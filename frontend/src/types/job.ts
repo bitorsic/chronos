@@ -30,9 +30,16 @@ export interface Schedule {
 }
 
 export interface JobData {
-  subject?: string; // For EMAIL_REMINDER and EMAIL_PRICES
-  message?: string; // For EMAIL_REMINDER
-  stockSymbols?: string[]; // For EMAIL_PRICES and STORE_PRICES
+  // For EMAIL_REMINDER
+  to?: string[]; // Recipients
+  subject?: string;
+  body?: string;
+  
+  // For EMAIL_PRICES
+  symbols?: string[]; // Stock symbols
+  
+  // For STORE_PRICES
+  symbol?: string; // Single stock symbol
 }
 
 export interface Job {

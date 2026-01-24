@@ -18,6 +18,7 @@ const jobSchema = z.object({
   scheduleType: z.enum([ScheduleType.IMMEDIATE, ScheduleType.ONCE, ScheduleType.CRON]),
   scheduledAt: z.string().optional(),
   cronExpression: z.string().optional(),
+  recipients: z.string().optional(), // Comma-separated email addresses
   subject: z.string().optional(),
   message: z.string().optional(),
   stockSymbols: z.string().optional(),
@@ -37,6 +38,14 @@ const jobSchema = z.object({
     return true;
   },
   { message: 'Cron expression is required for CRON schedule', path: ['cronExpression'] }
+).refine(
+  (data) => {
+    if (data.jobType === JobType.EMAIL_REMINDER || data.jobType === JobType.EMAIL_PRICES) {
+      return !!data.recipients;
+    }
+    return true;
+  },
+  { message: 'Recipients are required for email jobs', path: ['recipients'] }
 ).refine(
   (data) => {
     if (data.jobType === JobType.EMAIL_REMINDER) {
@@ -96,23 +105,25 @@ export default function CreateJob() {
 
       // Add job-specific data
       if (formData.jobType === JobType.EMAIL_REMINDER) {
+        jobData.data.to = formData.recipients?.split(',').map((s) => s.trim()).filter(Boolean) || [];
         jobData.data.subject = formData.subject;
-        jobData.data.message = formData.message;
+        jobData.data.body = formData.message;
       }
 
       if (formData.jobType === JobType.EMAIL_PRICES) {
-        jobData.data.subject = formData.subject;
-        jobData.data.stockSymbols = formData.stockSymbols
+        jobData.data.to = formData.recipients?.split(',').map((s) => s.trim()).filter(Boolean) || [];
+        jobData.data.symbols = formData.stockSymbols
           ?.split(',')
           .map((s) => s.trim())
           .filter(Boolean);
       }
 
       if (formData.jobType === JobType.STORE_PRICES) {
-        jobData.data.stockSymbols = formData.stockSymbols
+        const symbols = formData.stockSymbols
           ?.split(',')
           .map((s) => s.trim())
           .filter(Boolean);
+        jobData.data.symbol = symbols?.[0] || '';
       }
 
       const createdJob = await jobService.createJob(jobData);
@@ -182,6 +193,16 @@ export default function CreateJob() {
                   Example: "0 9 * * *" = Every day at 9 AM
                 </p>
               </div>
+            )}
+
+            {/* Recipients (for EMAIL jobs) */}
+            {(jobType === JobType.EMAIL_REMINDER || jobType === JobType.EMAIL_PRICES) && (
+              <Input
+                label="Recipients"
+                placeholder="user1@example.com, user2@example.com"
+                error={errors.recipients?.message}
+                {...register('recipients')}
+              />
             )}
 
             {/* Email Subject (for EMAIL_REMINDER and EMAIL_PRICES) */}

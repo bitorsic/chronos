@@ -1,17 +1,55 @@
 import api from '../utils/api';
 import type { AuthResponse, LoginCredentials, RegisterData } from '../types/user';
 
+// Backend response structure
+interface BackendAuthResponse {
+  message: string;
+  accessToken: string;
+  refreshToken: string;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    role: string;
+  };
+}
+
 export const authService = {
   // Login user
   login: async (credentials: LoginCredentials): Promise<AuthResponse> => {
-    const response = await api.post<AuthResponse>('/auth/login', credentials);
-    return response.data;
+    const response = await api.post<BackendAuthResponse>('/users/login', credentials);
+    // Transform backend response to match frontend types
+    return {
+      token: response.data.accessToken,
+      user: {
+        _id: response.data.user.id,
+        username: response.data.user.name,
+        email: response.data.user.email,
+        role: response.data.user.role as 'ADMIN' | 'CLIENT',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+    };
   },
 
   // Register new user
   register: async (data: RegisterData): Promise<AuthResponse> => {
-    const response = await api.post<AuthResponse>('/auth/register', data);
-    return response.data;
+    const response = await api.post<BackendAuthResponse>('/users/login', {
+      email: data.email,
+      password: data.password,
+    });
+    // Transform backend response to match frontend types
+    return {
+      token: response.data.accessToken,
+      user: {
+        _id: response.data.user.id,
+        username: response.data.user.name,
+        email: response.data.user.email,
+        role: response.data.user.role as 'ADMIN' | 'CLIENT',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+    };
   },
 
   // Logout user (clear local storage)

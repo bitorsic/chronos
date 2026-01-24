@@ -176,24 +176,32 @@ export default function JobDetails() {
           </Card>
 
           <Card title="Job Data">
-            {job.data.message && (
+            {job.data.body && (
               <div className="mb-4">
                 <dt className="text-sm font-medium text-gray-500">Message</dt>
                 <dd className="text-sm text-gray-900 mt-1 whitespace-pre-wrap">
-                  {job.data.message}
+                  {job.data.body}
                 </dd>
               </div>
             )}
-            {job.data.stockSymbols && job.data.stockSymbols.length > 0 && (
+            {job.data.symbols && job.data.symbols.length > 0 && (
               <div>
                 <dt className="text-sm font-medium text-gray-500 mb-2">Stock Symbols</dt>
                 <div className="flex flex-wrap gap-2">
-                  {job.data.stockSymbols.map((symbol) => (
+                  {job.data.symbols.map((symbol: string) => (
                     <Badge key={symbol} variant="info">
                       {symbol}
                     </Badge>
                   ))}
                 </div>
+              </div>
+            )}
+            {job.data.symbol && (
+              <div>
+                <dt className="text-sm font-medium text-gray-500">Stock Symbol</dt>
+                <dd className="text-sm text-gray-900 mt-1">
+                  <Badge variant="info">{job.data.symbol}</Badge>
+                </dd>
               </div>
             )}
           </Card>

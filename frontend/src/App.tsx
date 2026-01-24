@@ -2,18 +2,18 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { useAuth } from './hooks/useAuth';
 
-// Pages - will create these next
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Dashboard from './pages/Dashboard';
-import Jobs from './pages/Jobs';
-import CreateJob from './pages/CreateJob';
-import JobDetails from './pages/JobDetails';
-import Executions from './pages/Executions';
-import ExecutionDetails from './pages/ExecutionDetails';
-import Prices from './pages/Prices';
-import Emails from './pages/Emails';
-import AdminReports from './pages/AdminReports';
+// Pages
+import Login from './pages/Login.tsx';
+import Register from './pages/Register.tsx';
+import Dashboard from './pages/Dashboard.tsx';
+import Jobs from './pages/Jobs.tsx';
+import CreateJob from './pages/CreateJob.tsx';
+import JobDetails from './pages/JobDetails.tsx';
+import Executions from './pages/Executions.tsx';
+import ExecutionDetails from './pages/ExecutionDetails.tsx';
+import Prices from './pages/Prices.tsx';
+import Emails from './pages/Emails.tsx';
+import AdminReports from './pages/AdminReports.tsx';
 
 function App() {
   const { isAuthenticated, isLoading } = useAuth();
