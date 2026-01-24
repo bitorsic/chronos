@@ -16,7 +16,7 @@ import type { AdminJobStats, AdminEmailStats, AdminPriceStats } from '../types/a
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const isAdmin = user?.role === 'ADMIN';
+  const isAdmin = user?.role === 'admin';
 
   return (
     <Layout>
@@ -51,8 +51,8 @@ function ClientDashboard() {
         jobService.getJobs({ page: 1, limit: 5 }),
         jobService.getExecutions({ page: 1, limit: 5 }),
       ]);
-      setJobs(jobsData.data);
-      setExecutions(executionsData.data);
+      setJobs(jobsData.data || []);
+      setExecutions(executionsData.data || []);
     } catch (error: any) {
       toast.error('Failed to load dashboard data');
     } finally {
@@ -68,9 +68,8 @@ function ClientDashboard() {
     );
   }
 
-  const activeJobs = jobs.filter((job) => job.status === 'ACTIVE').length;
-  const recentSuccessful = executions.filter((e) => e.status === 'SUCCESS').length;
-  const recentFailed = executions.filter((e) => e.status === 'FAILED').length;
+  const recentSuccessful = executions.filter((e) => e.executionStatus === 'success').length;
+  const recentFailed = executions.filter((e) => e.executionStatus === 'failed').length;
 
   return (
     <>
@@ -88,7 +87,7 @@ function ClientDashboard() {
               </svg>
             </div>
           </div>
-          <p className="text-sm text-gray-500 mt-2">{activeJobs} active</p>
+          <p className="text-sm text-gray-500 mt-2">Scheduled jobs</p>
         </Card>
 
         <Card>
@@ -153,7 +152,7 @@ function ClientDashboard() {
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Schedule</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Last Run</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Created</th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
                 </tr>
@@ -164,9 +163,13 @@ function ClientDashboard() {
                     <td className="px-4 py-3 text-sm text-gray-900">{job.jobType}</td>
                     <td className="px-4 py-3 text-sm text-gray-600">{job.schedule.scheduleType}</td>
                     <td className="px-4 py-3">
-                      <Badge variant={job.status === 'ACTIVE' ? 'success' : 'default'}>
-                        {job.status}
-                      </Badge>
+                      {job.lastRunStatus ? (
+                        <Badge variant={job.lastRunStatus === 'success' ? 'success' : 'error'}>
+                          {job.lastRunStatus}
+                        </Badge>
+                      ) : (
+                        <span className="text-sm text-gray-500">Never run</span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-600">
                       {format(new Date(job.createdAt), 'MMM d, yyyy')}
@@ -174,7 +177,7 @@ function ClientDashboard() {
                     <td className="px-4 py-3 text-right">
                       <Link
                         to={`/jobs/${job._id}`}
-                        className="text-primary hover:text-primary-hover text-sm font-medium"
+                        className="text-indigo-600 hover:text-indigo-700 text-sm font-medium"
                       >
                         View
                       </Link>
@@ -214,8 +217,8 @@ function ClientDashboard() {
                   <tr key={execution._id} className="hover:bg-gray-50">
                     <td className="px-4 py-3 text-sm text-gray-900">{execution.jobType}</td>
                     <td className="px-4 py-3">
-                      <Badge variant={execution.status === 'SUCCESS' ? 'success' : 'error'}>
-                        {execution.status}
+                      <Badge variant={execution.executionStatus === 'success' ? 'success' : 'error'}>
+                        {execution.executionStatus}
                       </Badge>
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-600">
@@ -289,40 +292,36 @@ function AdminDashboard() {
       {/* System Stats */}
       <div>
         <h2 className="text-xl font-semibold text-gray-900 mb-4">System Statistics</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <Card>
             <p className="text-sm font-medium text-gray-600">Total Jobs</p>
             <p className="text-3xl font-bold text-gray-900 mt-2">{jobStats?.totalJobs || 0}</p>
-            <div className="mt-3 space-y-1">
-              <p className="text-xs text-gray-600">Active: {jobStats?.activeJobs || 0}</p>
-              <p className="text-xs text-gray-600">Paused: {jobStats?.pausedJobs || 0}</p>
-              <p className="text-xs text-gray-600">Failed: {jobStats?.failedJobs || 0}</p>
-            </div>
+            <p className="text-xs text-gray-600 mt-3">All scheduled jobs</p>
           </Card>
 
           <Card>
             <p className="text-sm font-medium text-gray-600">Total Emails</p>
             <p className="text-3xl font-bold text-gray-900 mt-2">{emailStats?.totalEmails || 0}</p>
             <div className="mt-3 space-y-1">
-              <p className="text-xs text-gray-600">Today: {emailStats?.emailsSentToday || 0}</p>
-              <p className="text-xs text-gray-600">This Week: {emailStats?.emailsSentThisWeek || 0}</p>
-              <p className="text-xs text-gray-600">This Month: {emailStats?.emailsSentThisMonth || 0}</p>
+              <p className="text-xs text-gray-600">Successful: {emailStats?.successful || 0}</p>
+              <p className="text-xs text-gray-600">Failed: {emailStats?.failed || 0}</p>
+              <p className="text-xs text-gray-600">Success Rate: {emailStats?.successRate || '0%'}</p>
             </div>
           </Card>
 
           <Card>
-            <p className="text-sm font-medium text-gray-600">Stored Prices</p>
-            <p className="text-3xl font-bold text-gray-900 mt-2">{priceStats?.totalPrices || 0}</p>
+            <p className="text-sm font-medium text-gray-600">Price Fetches</p>
+            <p className="text-3xl font-bold text-gray-900 mt-2">{priceStats?.totalFetches || 0}</p>
             <div className="mt-3 space-y-1">
-              <p className="text-xs text-gray-600">Today: {priceStats?.pricesStoredToday || 0}</p>
-              <p className="text-xs text-gray-600">This Week: {priceStats?.pricesStoredThisWeek || 0}</p>
-              <p className="text-xs text-gray-600">This Month: {priceStats?.pricesStoredThisMonth || 0}</p>
+              <p className="text-xs text-gray-600">Successful: {priceStats?.successful || 0}</p>
+              <p className="text-xs text-gray-600">Failed: {priceStats?.failed || 0}</p>
+              <p className="text-xs text-gray-600">Success Rate: {priceStats?.successRate || '0%'}</p>
             </div>
           </Card>
 
           <Card>
             <p className="text-sm font-medium text-gray-600">Unique Stocks</p>
-            <p className="text-3xl font-bold text-gray-900 mt-2">{priceStats?.uniqueStockSymbols || 0}</p>
+            <p className="text-3xl font-bold text-gray-900 mt-2">{priceStats?.uniqueSymbols || 0}</p>
             <p className="text-xs text-gray-600 mt-3">Tracked symbols</p>
           </Card>
         </div>
@@ -332,21 +331,21 @@ function AdminDashboard() {
       <Card title="Jobs by Type">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="bg-blue-50 p-4 rounded-lg">
-            <p className="text-sm font-medium text-gray-600">EMAIL_REMINDER</p>
+            <p className="text-sm font-medium text-gray-600">Email Reminders</p>
             <p className="text-2xl font-bold text-blue-600 mt-1">
-              {jobStats?.jobsByType.EMAIL_REMINDER || 0}
+              {jobStats?.jobsByType.emailReminder || 0}
             </p>
           </div>
           <div className="bg-green-50 p-4 rounded-lg">
-            <p className="text-sm font-medium text-gray-600">EMAIL_PRICES</p>
+            <p className="text-sm font-medium text-gray-600">Email Prices</p>
             <p className="text-2xl font-bold text-green-600 mt-1">
-              {jobStats?.jobsByType.EMAIL_PRICES || 0}
+              {jobStats?.jobsByType.emailPrices || 0}
             </p>
           </div>
           <div className="bg-purple-50 p-4 rounded-lg">
-            <p className="text-sm font-medium text-gray-600">STORE_PRICES</p>
+            <p className="text-sm font-medium text-gray-600">Store Prices</p>
             <p className="text-2xl font-bold text-purple-600 mt-1">
-              {jobStats?.jobsByType.STORE_PRICES || 0}
+              {jobStats?.jobsByType.storePrices || 0}
             </p>
           </div>
         </div>

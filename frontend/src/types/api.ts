@@ -16,13 +16,19 @@ export interface ApiError {
   errors?: Record<string, string[]>;
 }
 
-// Paginated response
+// Backend pagination info
+export interface Pagination {
+  total: number;
+  limit: number;
+  skip: number;
+  hasMore: boolean;
+}
+
+// Paginated response (matches backend structure)
+// Backend returns { jobs: [...], pagination: {...} } or { executions: [...], pagination: {...} }
 export interface PaginatedResponse<T> {
   data: T[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
+  pagination: Pagination;
 }
 
 // Job API responses
@@ -37,28 +43,24 @@ export interface JobEmailsResponse extends EmailHistory {}
 // Admin Reports
 export interface AdminJobStats {
   totalJobs: number;
-  activeJobs: number;
-  pausedJobs: number;
-  completedJobs: number;
-  failedJobs: number;
   jobsByType: {
-    EMAIL_REMINDER: number;
-    EMAIL_PRICES: number;
-    STORE_PRICES: number;
+    emailReminder: number;
+    emailPrices: number;
+    storePrices: number;
   };
 }
 
 export interface AdminEmailStats {
   totalEmails: number;
-  emailsSentToday: number;
-  emailsSentThisWeek: number;
-  emailsSentThisMonth: number;
+  successful: number;
+  failed: number;
+  successRate: string;
 }
 
 export interface AdminPriceStats {
-  totalPrices: number;
-  pricesStoredToday: number;
-  pricesStoredThisWeek: number;
-  pricesStoredThisMonth: number;
-  uniqueStockSymbols: number;
+  totalFetches: number;
+  successful: number;
+  failed: number;
+  successRate: string;
+  uniqueSymbols: number;
 }

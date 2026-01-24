@@ -11,7 +11,7 @@ import Spinner from '../components/Spinner';
 import Pagination from '../components/Pagination';
 import { jobService } from '../services/jobService';
 import type { Job } from '../types/job';
-import { JobType, JobStatus } from '../types/job';
+import { JobType } from '../types/job';
 
 export default function Jobs() {
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -21,12 +21,11 @@ export default function Jobs() {
   const [total, setTotal] = useState(0);
   
   // Filters
-  const [statusFilter, setStatusFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
 
   useEffect(() => {
     loadJobs();
-  }, [currentPage, statusFilter, typeFilter]);
+  }, [currentPage, typeFilter]);
 
   const loadJobs = async () => {
     setIsLoading(true);
@@ -34,12 +33,12 @@ export default function Jobs() {
       const response = await jobService.getJobs({
         page: currentPage,
         limit: 10,
-        status: statusFilter || undefined,
         jobType: typeFilter || undefined,
       });
       setJobs(response.data);
-      setTotalPages(response.totalPages);
-      setTotal(response.total);
+      const { pagination } = response;
+      setTotal(pagination.total);
+      setTotalPages(Math.ceil(pagination.total / pagination.limit));
     } catch (error: any) {
       toast.error('Failed to load jobs');
     } finally {
@@ -74,7 +73,7 @@ export default function Jobs() {
 
         {/* Filters */}
         <Card>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Select
               label="Job Type"
               options={[
@@ -89,27 +88,11 @@ export default function Jobs() {
                 handleFilterChange();
               }}
             />
-            <Select
-              label="Status"
-              options={[
-                { value: '', label: 'All Statuses' },
-                { value: JobStatus.ACTIVE, label: 'Active' },
-                { value: JobStatus.PAUSED, label: 'Paused' },
-                { value: JobStatus.COMPLETED, label: 'Completed' },
-                { value: JobStatus.FAILED, label: 'Failed' },
-              ]}
-              value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value);
-                handleFilterChange();
-              }}
-            />
             <div className="flex items-end">
               <Button
                 variant="secondary"
                 className="w-full"
                 onClick={() => {
-                  setStatusFilter('');
                   setTypeFilter('');
                   setCurrentPage(1);
                 }}
@@ -170,7 +153,7 @@ export default function Jobs() {
                         Schedule
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        Status
+                        Last Run
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                         Next Run
@@ -189,7 +172,7 @@ export default function Jobs() {
                         <td className="px-4 py-4">
                           <div>
                             <p className="text-sm font-medium text-gray-900">
-                              {job.jobType.replace(/_/g, ' ')}
+                              {job.jobType.replace(/([A-Z])/g, ' $1').trim()}
                             </p>
                             {job.data.subject && (
                               <p className="text-xs text-gray-500 mt-1">{job.data.subject}</p>
@@ -204,18 +187,22 @@ export default function Jobs() {
                             </p>
                           )}
                         </td>
-                        <td className="px-4 py-4">
-                          <Badge
-                            variant={
-                              job.status === 'ACTIVE'
-                                ? 'success'
-                                : job.status === 'FAILED'
-                                ? 'error'
-                                : 'default'
-                            }
-                          >
-                            {job.status}
-                          </Badge>
+                        <td className="px-4 py-4 text-sm text-gray-600">
+                          {job.lastRunAt ? (
+                            <div>
+                              <p>{format(new Date(job.lastRunAt), 'MMM d, HH:mm')}</p>
+                              {job.lastRunStatus && (
+                                <Badge
+                                  variant={job.lastRunStatus === 'success' ? 'success' : 'error'}
+                                  className="mt-1"
+                                >
+                                  {job.lastRunStatus}
+                                </Badge>
+                              )}
+                            </div>
+                          ) : (
+                            '-'
+                          )}
                         </td>
                         <td className="px-4 py-4 text-sm text-gray-600">
                           {job.nextRunAt
@@ -228,7 +215,7 @@ export default function Jobs() {
                         <td className="px-4 py-4 text-right">
                           <Link
                             to={`/jobs/${job._id}`}
-                            className="text-primary hover:text-primary-hover text-sm font-medium"
+                            className="text-indigo-600 hover:text-indigo-700 text-sm font-medium"
                           >
                             View Details
                           </Link>

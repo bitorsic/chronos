@@ -90,19 +90,13 @@ export default function JobDetails() {
           <div>
             <div className="flex items-center space-x-3">
               <h1 className="text-3xl font-bold text-gray-900">
-                {job.jobType.replace(/_/g, ' ')}
+                {job.jobType.replace(/([A-Z])/g, ' $1').trim()}
               </h1>
-              <Badge
-                variant={
-                  job.status === 'ACTIVE'
-                    ? 'success'
-                    : job.status === 'FAILED'
-                    ? 'error'
-                    : 'default'
-                }
-              >
-                {job.status}
-              </Badge>
+              {job.lastRunStatus && (
+                <Badge variant={job.lastRunStatus === 'success' ? 'success' : 'error'}>
+                  Last: {job.lastRunStatus}
+                </Badge>
+              )}
             </div>
             {job.data.subject && (
               <p className="text-gray-600 mt-2">{job.data.subject}</p>
@@ -146,10 +140,24 @@ export default function JobDetails() {
                   </dd>
                 </div>
               )}
-              <div>
-                <dt className="text-sm font-medium text-gray-500">Status</dt>
-                <dd className="text-sm text-gray-900 mt-1">{job.status}</dd>
-              </div>
+              {job.lastRunAt && (
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">Last Run At</dt>
+                  <dd className="text-sm text-gray-900 mt-1">
+                    {format(new Date(job.lastRunAt), 'MMM d, yyyy HH:mm')}
+                  </dd>
+                </div>
+              )}
+              {job.lastRunStatus && (
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">Last Run Status</dt>
+                  <dd className="mt-1">
+                    <Badge variant={job.lastRunStatus === 'success' ? 'success' : 'error'}>
+                      {job.lastRunStatus}
+                    </Badge>
+                  </dd>
+                </div>
+              )}
               <div>
                 <dt className="text-sm font-medium text-gray-500">Created At</dt>
                 <dd className="text-sm text-gray-900 mt-1">
@@ -234,8 +242,8 @@ export default function JobDetails() {
                   {executions.map((execution) => (
                     <tr key={execution._id} className="hover:bg-gray-50">
                       <td className="px-4 py-3">
-                        <Badge variant={execution.status === 'SUCCESS' ? 'success' : 'error'}>
-                          {execution.status}
+                        <Badge variant={execution.executionStatus === 'success' ? 'success' : 'error'}>
+                          {execution.executionStatus}
                         </Badge>
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600">

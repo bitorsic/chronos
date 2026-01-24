@@ -1,8 +1,8 @@
 import type { JobType } from './job';
 
 export const ExecutionStatus = {
-  SUCCESS: 'SUCCESS',
-  FAILED: 'FAILED'
+  SUCCESS: 'success',
+  FAILED: 'failed'
 } as const;
 
 export type ExecutionStatus = typeof ExecutionStatus[keyof typeof ExecutionStatus];
@@ -12,7 +12,7 @@ export interface Execution {
   jobId: string;
   userId: string;
   jobType: JobType;
-  status: ExecutionStatus;
+  executionStatus: ExecutionStatus;
   executedAt: string;
   error?: string;
   metadata?: Record<string, any>;

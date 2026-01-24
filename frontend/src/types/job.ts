@@ -1,27 +1,18 @@
 export const JobType = {
-  EMAIL_REMINDER: 'EMAIL_REMINDER',
-  EMAIL_PRICES: 'EMAIL_PRICES',
-  STORE_PRICES: 'STORE_PRICES'
+  EMAIL_REMINDER: 'emailReminder',
+  EMAIL_PRICES: 'emailPrices',
+  STORE_PRICES: 'storePrices'
 } as const;
 
 export type JobType = typeof JobType[keyof typeof JobType];
 
 export const ScheduleType = {
-  IMMEDIATE: 'IMMEDIATE',
-  ONCE: 'ONCE',
-  CRON: 'CRON'
+  IMMEDIATE: 'immediate',
+  ONCE: 'once',
+  CRON: 'cron'
 } as const;
 
 export type ScheduleType = typeof ScheduleType[keyof typeof ScheduleType];
-
-export const JobStatus = {
-  ACTIVE: 'ACTIVE',
-  PAUSED: 'PAUSED',
-  COMPLETED: 'COMPLETED',
-  FAILED: 'FAILED'
-} as const;
-
-export type JobStatus = typeof JobStatus[keyof typeof JobStatus];
 
 export interface Schedule {
   scheduleType: ScheduleType;
@@ -48,11 +39,11 @@ export interface Job {
   jobType: JobType;
   schedule: Schedule;
   data: JobData;
-  status: JobStatus;
   createdAt: string;
   updatedAt: string;
   nextRunAt?: string;
   lastRunAt?: string;
+  lastRunStatus?: 'success' | 'failed';
 }
 
 export interface CreateJobDto {
@@ -64,5 +55,4 @@ export interface CreateJobDto {
 export interface UpdateJobDto {
   schedule?: Schedule;
   data?: JobData;
-  status?: JobStatus;
 }

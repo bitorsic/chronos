@@ -35,8 +35,9 @@ export default function Executions() {
         status: statusFilter || undefined,
       });
       setExecutions(response.data);
-      setTotalPages(response.totalPages);
-      setTotal(response.total);
+      const { pagination } = response;
+      setTotal(pagination.total);
+      setTotalPages(Math.ceil(pagination.total / pagination.limit));
     } catch (error: any) {
       toast.error('Failed to load executions');
     } finally {
@@ -161,8 +162,8 @@ export default function Executions() {
                           </div>
                         </td>
                         <td className="px-4 py-4">
-                          <Badge variant={execution.status === 'SUCCESS' ? 'success' : 'error'}>
-                            {execution.status}
+                          <Badge variant={execution.executionStatus === 'success' ? 'success' : 'error'}>
+                            {execution.executionStatus}
                           </Badge>
                         </td>
                         <td className="px-4 py-4 text-sm text-gray-600">
@@ -228,7 +229,7 @@ export default function Executions() {
                 <p className="text-3xl font-bold text-gray-900 mt-2">
                   {total > 0
                     ? Math.round(
-                        (executions.filter((e) => e.status === 'SUCCESS').length / executions.length) * 100
+                        (executions.filter((e) => e.executionStatus === 'success').length / executions.length) * 100
                       )
                     : 0}
                   %

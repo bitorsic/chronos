@@ -16,13 +16,13 @@ export default function Button({
   disabled,
   ...props
 }: ButtonProps) {
-  const baseStyles = 'font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
+  const baseStyles = 'inline-flex items-center justify-center font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed border border-transparent';
   
   const variantStyles = {
-    primary: 'bg-primary hover:bg-primary-hover text-white focus:ring-primary',
-    secondary: 'bg-gray-200 hover:bg-gray-300 text-gray-800 focus:ring-gray-500',
-    danger: 'bg-error hover:bg-red-600 text-white focus:ring-error',
-    success: 'bg-success hover:bg-green-600 text-white focus:ring-success',
+    primary: 'bg-indigo-600 hover:bg-indigo-700 text-white focus:ring-indigo-500',
+    secondary: 'bg-gray-200 hover:bg-gray-300 text-gray-900 border-gray-300 focus:ring-gray-500',
+    danger: 'bg-red-500 hover:bg-red-600 text-white focus:ring-red-500',
+    success: 'bg-green-500 hover:bg-green-600 text-white focus:ring-green-500',
   };
 
   const sizeStyles = {

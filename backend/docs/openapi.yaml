@@ -1,0 +1,1243 @@
+openapi: 3.1.0
+info:
+  title: Chronos Job Scheduling API
+  description: Job scheduling platform for email reminders, email price alerts, and storing stock price data.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:3000
+
+tags:
+  - name: Authentication
+    description: User authentication and token management
+  - name: Users
+    description: User management operations (admin only)
+  - name: Jobs
+    description: Job creation and management
+  - name: Executions
+    description: Job execution history and details
+  - name: Prices
+    description: Stored price data from Alpha Vantage
+  - name: Emails
+    description: Email execution history
+  - name: Admin Reports
+    description: Admin-only analytics and reports
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT access token obtained from login endpoint
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Error message describing what went wrong
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          description: User ID
+        name:
+          type: string
+          description: User's full name
+        email:
+          type: string
+          format: email
+          description: User's email address
+        role:
+          type: string
+          enum: [ADMIN, CLIENT]
+          description: User role
+
+    Schedule:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          enum: [IMMEDIATE, ONCE, CRON]
+          description: Schedule type - IMMEDIATE runs once immediately, ONCE runs at a specific time, CRON runs on a recurring schedule
+        scheduledTime:
+          type: string
+          format: date-time
+          description: ISO 8601 date-time for ONCE schedule type (required if type is ONCE)
+        cronExpression:
+          type: string
+          description: Cron expression for CRON schedule type (required if type is CRON)
+          example: "0 9 * * *"
+
+    Job:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Job ID
+        userId:
+          type: string
+          description: ID of the user who created the job
+        jobType:
+          type: string
+          enum: [EMAIL_REMINDER, EMAIL_PRICES, STORE_PRICES]
+          description: Type of job
+        schedule:
+          $ref: '#/components/schemas/Schedule'
+        payload:
+          type: object
+          description: Job-specific payload data (varies by jobType)
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Execution:
+      type: object
+      properties:
+        _id:
+          type: string
+          description: Execution ID
+        jobId:
+          type: string
+          description: ID of the job that was executed
+        userId:
+          type: string
+          description: ID of the user who owns this execution
+        type:
+          type: string
+          enum: [EMAIL, STORAGE]
+          description: Type of execution
+        executionStatus:
+          type: string
+          enum: [SUCCESS, FAILURE]
+          description: Execution status
+        attempt:
+          type: integer
+          description: Attempt number (for retry logic)
+        error:
+          type: string
+          description: Error message if execution failed
+        createdAt:
+          type: string
+          format: date-time
+
+    EmailExecution:
+      allOf:
+        - $ref: '#/components/schemas/Execution'
+        - type: object
+          properties:
+            emailType:
+              type: string
+              enum: [REMINDER, PRICES]
+            to:
+              type: array
+              items:
+                type: string
+                format: email
+            subject:
+              type: string
+            metadata:
+              type: object
+
+    StorageExecution:
+      allOf:
+        - $ref: '#/components/schemas/Execution'
+        - type: object
+          properties:
+            symbol:
+              type: string
+              description: Stock symbol
+            price:
+              type: number
+              description: Stock price
+            currency:
+              type: string
+              description: Currency code
+            fetchedAt:
+              type: string
+              format: date-time
+
+    Pagination:
+      type: object
+      properties:
+        total:
+          type: integer
+          description: Total number of items
+        limit:
+          type: integer
+          description: Number of items per page
+        skip:
+          type: integer
+          description: Number of items skipped
+        hasMore:
+          type: boolean
+          description: Whether there are more items available
+
+  responses:
+    UnauthorizedError:
+      description: Access token is missing or invalid
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            message: "Unauthorized"
+
+    ForbiddenError:
+      description: User does not have permission to access this resource
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            message: "Forbidden - Admin access required"
+
+    NotFoundError:
+      description: The requested resource was not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            message: "Resource not found"
+
+    ValidationError:
+      description: Request validation failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            message: "Validation error"
+
+paths:
+  /users/login:
+    post:
+      tags:
+        - Authentication
+      summary: Login user
+      description: Authenticate a user and receive access and refresh tokens
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "user@example.com"
+                password:
+                  type: string
+                  format: password
+                  example: "securepassword123"
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Login successful"
+                  accessToken:
+                    type: string
+                    description: JWT access token (valid for 15 minutes)
+                  refreshToken:
+                    type: string
+                    description: JWT refresh token (valid for 7 days)
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                message: "Invalid credentials"
+
+  /users/refresh-token:
+    post:
+      tags:
+        - Authentication
+      summary: Refresh access token
+      description: Get a new access token using a valid refresh token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refreshToken
+              properties:
+                refreshToken:
+                  type: string
+                  description: Valid refresh token from login
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Token refreshed successfully"
+                  accessToken:
+                    type: string
+                    description: New JWT access token
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /users/forgot-password:
+    post:
+      tags:
+        - Authentication
+      summary: Request password reset token
+      description: Generate a password reset token for the user's email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        '200':
+          description: Password reset token generated (if email exists)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  resetToken:
+                    type: string
+                    description: Token to use for password reset (valid for 1 hour)
+
+  /users/reset-password:
+    post:
+      tags:
+        - Authentication
+      summary: Reset password with token
+      description: Reset user password using a valid reset token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - resetToken
+                - newPassword
+              properties:
+                resetToken:
+                  type: string
+                  description: Token from forgot-password endpoint
+                newPassword:
+                  type: string
+                  format: password
+      responses:
+        '200':
+          description: Password reset successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Password reset successfully"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /users/users:
+    post:
+      tags:
+        - Users
+      summary: Create new user
+      description: Create a new admin or client user (admin only). A temporary password will be generated and sent via email.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - email
+                - role
+              properties:
+                name:
+                  type: string
+                  example: "John Doe"
+                email:
+                  type: string
+                  format: email
+                  example: "john@example.com"
+                role:
+                  type: string
+                  enum: [ADMIN, CLIENT]
+                  example: "CLIENT"
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  user:
+                    $ref: '#/components/schemas/User'
+                  temporaryPassword:
+                    type: string
+                    description: Temporary password for the new user
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /users/admins:
+    get:
+      tags:
+        - Users
+      summary: Get all admins
+      description: List all admin users (requires authentication)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of admin users
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  admins:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /users/clients:
+    get:
+      tags:
+        - Users
+      summary: Get all clients
+      description: List all client users (requires authentication)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of client users
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  clients:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /users/me:
+    get:
+      tags:
+        - Users
+      summary: Get current user info
+      description: Get information about the authenticated user
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+    put:
+      tags:
+        - Users
+      summary: Update current user
+      description: Update the authenticated user's profile or password
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: New name
+                email:
+                  type: string
+                  format: email
+                  description: New email
+                oldPassword:
+                  type: string
+                  format: password
+                  description: Current password (required if changing password)
+                newPassword:
+                  type: string
+                  format: password
+                  description: New password
+      responses:
+        '200':
+          description: User updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  user:
+                    $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /jobs/email-reminder:
+    post:
+      tags:
+        - Jobs
+      summary: Create email reminder job
+      description: Create a scheduled job to send reminder emails
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - to
+                - subject
+                - body
+                - schedule
+              properties:
+                to:
+                  type: array
+                  items:
+                    type: string
+                    format: email
+                  description: Recipient email addresses
+                  example: ["recipient1@example.com", "recipient2@example.com"]
+                subject:
+                  type: string
+                  description: Email subject
+                  example: "Daily Reminder"
+                body:
+                  type: string
+                  description: Email body content
+                  example: "Don't forget your meeting at 3 PM"
+                schedule:
+                  $ref: '#/components/schemas/Schedule'
+      responses:
+        '201':
+          description: Email reminder job created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  job:
+                    $ref: '#/components/schemas/Job'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /jobs/email-prices:
+    post:
+      tags:
+        - Jobs
+      summary: Create email prices job
+      description: Create a scheduled job to send stock price alerts via email
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - to
+                - symbols
+                - schedule
+              properties:
+                to:
+                  type: array
+                  items:
+                    type: string
+                    format: email
+                  description: Recipient email addresses
+                  example: ["trader@example.com"]
+                symbols:
+                  type: array
+                  items:
+                    type: string
+                  description: Stock symbols to fetch prices for
+                  example: ["AAPL", "GOOGL", "MSFT"]
+                schedule:
+                  $ref: '#/components/schemas/Schedule'
+      responses:
+        '201':
+          description: Email prices job created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  job:
+                    $ref: '#/components/schemas/Job'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /jobs/store-prices:
+    post:
+      tags:
+        - Jobs
+      summary: Create store prices job
+      description: Create a scheduled job to fetch and store stock prices from Alpha Vantage API
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - symbol
+                - schedule
+              properties:
+                symbol:
+                  type: string
+                  description: Stock symbol to fetch and store
+                  example: "AAPL"
+                schedule:
+                  $ref: '#/components/schemas/Schedule'
+      responses:
+        '201':
+          description: Store prices job created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  job:
+                    $ref: '#/components/schemas/Job'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /jobs:
+    get:
+      tags:
+        - Jobs
+      summary: Get all jobs
+      description: List all jobs for the authenticated user with optional filters
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: jobType
+          in: query
+          schema:
+            type: string
+            enum: [EMAIL_REMINDER, EMAIL_PRICES, STORE_PRICES]
+          description: Filter by job type
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 100
+          description: Number of jobs to return
+        - name: skip
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: Number of jobs to skip (for pagination)
+      responses:
+        '200':
+          description: List of jobs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jobs:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Job'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /jobs/{jobId}:
+    get:
+      tags:
+        - Jobs
+      summary: Get job by ID
+      description: Get details of a specific job
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Job ID
+      responses:
+        '200':
+          description: Job details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  job:
+                    $ref: '#/components/schemas/Job'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+    delete:
+      tags:
+        - Jobs
+      summary: Delete job
+      description: Delete a job and remove it from the queue
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Job ID
+      responses:
+        '200':
+          description: Job deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Job deleted successfully"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /jobs/{jobId}/prices:
+    get:
+      tags:
+        - Jobs
+      summary: Get prices for a STORE_PRICES job
+      description: Get all price executions for a specific STORE_PRICES job
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Job ID (must be a STORE_PRICES job)
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+          description: Number of results to return
+        - name: skip
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: Number of results to skip
+      responses:
+        '200':
+          description: List of price executions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  prices:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/StorageExecution'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /jobs/{jobId}/emails:
+    get:
+      tags:
+        - Jobs
+      summary: Get emails for an email job
+      description: Get all email executions for a specific EMAIL_REMINDER or EMAIL_PRICES job
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Job ID (must be EMAIL_REMINDER or EMAIL_PRICES job)
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+          description: Number of results to return
+        - name: skip
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: Number of results to skip
+      responses:
+        '200':
+          description: List of email executions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  emails:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/EmailExecution'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '400':
+          description: Job is not an email job
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /jobs/executions/all:
+    get:
+      tags:
+        - Executions
+      summary: Get all executions
+      description: List all job executions for the authenticated user
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: jobId
+          in: query
+          schema:
+            type: string
+          description: Filter by job ID
+        - name: executionStatus
+          in: query
+          schema:
+            type: string
+            enum: [SUCCESS, FAILURE]
+          description: Filter by execution status
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [EMAIL, STORAGE]
+          description: Filter by execution type
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+          description: Number of results to return
+        - name: skip
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: Number of results to skip
+      responses:
+        '200':
+          description: List of executions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  executions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Execution'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /jobs/executions/{executionId}:
+    get:
+      tags:
+        - Executions
+      summary: Get execution by ID
+      description: Get details of a specific execution
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: executionId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Execution ID
+      responses:
+        '200':
+          description: Execution details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  execution:
+                    $ref: '#/components/schemas/Execution'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /prices:
+    get:
+      tags:
+        - Prices
+      summary: Get stored prices
+      description: Get stored stock prices from successful STORE_PRICES executions
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: symbol
+          in: query
+          schema:
+            type: string
+          description: Filter by stock symbol
+          example: "AAPL"
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Filter prices from this date
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Filter prices until this date
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+          description: Number of results to return
+        - name: skip
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: Number of results to skip
+      responses:
+        '200':
+          description: List of stored prices
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  prices:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        symbol:
+                          type: string
+                        price:
+                          type: number
+                        currency:
+                          type: string
+                        fetchedAt:
+                          type: string
+                          format: date-time
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /emails:
+    get:
+      tags:
+        - Emails
+      summary: Get email executions
+      description: Get email execution history for the authenticated user
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: emailType
+          in: query
+          schema:
+            type: string
+            enum: [REMINDER, PRICES]
+          description: Filter by email type
+        - name: executionStatus
+          in: query
+          schema:
+            type: string
+            enum: [SUCCESS, FAILURE]
+          description: Filter by execution status
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Filter from this date
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Filter until this date
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+          description: Number of results to return
+        - name: skip
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: Number of results to skip
+      responses:
+        '200':
+          description: List of email executions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  emails:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/EmailExecution'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /admin/reports/jobs:
+    get:
+      tags:
+        - Admin Reports
+      summary: Get jobs report
+      description: Get aggregated statistics about jobs (admin only)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Jobs statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalJobs:
+                    type: integer
+                    description: Total number of jobs
+                  byType:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        _id:
+                          type: string
+                          description: Job type
+                        count:
+                          type: integer
+                          description: Number of jobs of this type
+                  byUser:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        _id:
+                          type: string
+                          description: User ID
+                        email:
+                          type: string
+                        name:
+                          type: string
+                        count:
+                          type: integer
+                          description: Number of jobs created by this user
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /admin/reports/emails:
+    get:
+      tags:
+        - Admin Reports
+      summary: Get emails report
+      description: Get aggregated statistics about email executions (admin only)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Email statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalEmails:
+                    type: integer
+                  successful:
+                    type: integer
+                  failed:
+                    type: integer
+                  successRate:
+                    type: string
+                    description: Success rate as percentage
+                    example: "95.50%"
+                  byUser:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        _id:
+                          type: string
+                        email:
+                          type: string
+                        name:
+                          type: string
+                        total:
+                          type: integer
+                        successful:
+                          type: integer
+                        failed:
+                          type: integer
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /admin/reports/prices:
+    get:
+      tags:
+        - Admin Reports
+      summary: Get prices report
+      description: Get aggregated statistics about price fetch executions (admin only)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Price fetch statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalFetches:
+                    type: integer
+                  successful:
+                    type: integer
+                  failed:
+                    type: integer
+                  successRate:
+                    type: string
+                    description: Success rate as percentage
+                  uniqueSymbols:
+                    type: integer
+                    description: Number of unique stock symbols tracked
+                  byUser:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        _id:
+                          type: string
+                        email:
+                          type: string
+                        name:
+                          type: string
+                        total:
+                          type: integer
+                        successful:
+                          type: integer
+                        failed:
+                          type: integer
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'

@@ -81,8 +81,8 @@ export default function ExecutionDetails() {
           <div>
             <div className="flex items-center space-x-3">
               <h1 className="text-3xl font-bold text-gray-900">Execution Details</h1>
-              <Badge variant={execution.status === 'SUCCESS' ? 'success' : 'error'}>
-                {execution.status}
+              <Badge variant={execution.executionStatus === 'success' ? 'success' : 'error'}>
+                {execution.executionStatus}
               </Badge>
             </div>
             <p className="text-gray-600 mt-2">
@@ -105,12 +105,12 @@ export default function ExecutionDetails() {
               <div>
                 <dt className="text-sm font-medium text-gray-500">Job Type</dt>
                 <dd className="text-sm text-gray-900 mt-1">
-                  {execution.jobType.replace(/_/g, ' ')}
+                  {execution.jobType.replace(/([A-Z])/g, ' $1').trim()}
                 </dd>
               </div>
               <div>
                 <dt className="text-sm font-medium text-gray-500">Status</dt>
-                <dd className="text-sm text-gray-900 mt-1">{execution.status}</dd>
+                <dd className="text-sm text-gray-900 mt-1">{execution.executionStatus}</dd>
               </div>
               <div>
                 <dt className="text-sm font-medium text-gray-500">Executed At</dt>
@@ -156,10 +156,16 @@ export default function ExecutionDetails() {
                     </dd>
                   </div>
                 )}
-                <div>
-                  <dt className="text-sm font-medium text-gray-500">Job Status</dt>
-                  <dd className="text-sm text-gray-900 mt-1">{job.status}</dd>
-                </div>
+                {job.lastRunStatus && (
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">Last Run Status</dt>
+                    <dd className="mt-1">
+                      <Badge variant={job.lastRunStatus === 'success' ? 'success' : 'error'}>
+                        {job.lastRunStatus}
+                      </Badge>
+                    </dd>
+                  </div>
+                )}
                 {job.data.subject && (
                   <div>
                     <dt className="text-sm font-medium text-gray-500">Subject</dt>
@@ -199,7 +205,7 @@ export default function ExecutionDetails() {
         </div>
 
         {/* Error Details (if failed) */}
-        {execution.status === 'FAILED' && execution.error && (
+        {execution.executionStatus === 'failed' && execution.error && (
           <Card title="Error Details">
             <div className="bg-red-50 border border-red-200 rounded-lg p-4">
               <div className="flex items-start">
@@ -247,14 +253,14 @@ export default function ExecutionDetails() {
                 View All Executions
               </Button>
             </Link>
-            {execution.jobType === 'EMAIL_PRICES' && (
+            {execution.jobType === 'emailPrices' && (
               <Link to={`/jobs/${execution.jobId}/emails`}>
                 <Button variant="secondary" className="w-full">
                   View Sent Emails
                 </Button>
               </Link>
             )}
-            {execution.jobType === 'STORE_PRICES' && (
+            {execution.jobType === 'storePrices' && (
               <Link to={`/jobs/${execution.jobId}/prices`}>
                 <Button variant="secondary" className="w-full">
                   View Stored Prices

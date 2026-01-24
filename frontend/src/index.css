@@ -1,15 +1,5 @@
 @import "tailwindcss";
 
-/* Custom CSS Variables for brand colors and theme */
-:root {
-  /* Brand Colors - can be used with Tailwind's arbitrary values */
-  --primary: #4f46e5;
-  --primary-hover: #4338ca;
-  --success: #10b981;
-  --error: #ef4444;
-  --warning: #f59e0b;
-}
-
 /* Base styles */
 body {
   -webkit-font-smoothing: antialiased;

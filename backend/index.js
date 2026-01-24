@@ -54,7 +54,7 @@ if (process.env.NODE_ENV !== "prod") {
 		const storePricesWorker = require('./workers/storePricesWorker');
 		console.log("[+] Store prices worker started");
 
-		const port = process.env.PORT || 8080;
+		const port = process.env.PORT || 3000;
 		app.listen(port, (err) => {
 			if (err) throw err;
 			console.log('[+] Server running on port ' + port);

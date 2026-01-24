@@ -68,7 +68,7 @@ export default function AdminReports() {
         {/* Job Statistics */}
         <div>
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Job Statistics</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
             <Card>
               <div className="flex items-center justify-between">
                 <div>
@@ -83,70 +83,7 @@ export default function AdminReports() {
                   </svg>
                 </div>
               </div>
-            </Card>
-
-            <Card>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Active Jobs</p>
-                  <p className="text-4xl font-bold text-green-600 mt-2">
-                    {jobStats?.activeJobs || 0}
-                  </p>
-                </div>
-                <div className="bg-green-100 p-4 rounded-full">
-                  <svg className="w-8 h-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-              </div>
-            </Card>
-
-            <Card>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Paused Jobs</p>
-                  <p className="text-4xl font-bold text-yellow-600 mt-2">
-                    {jobStats?.pausedJobs || 0}
-                  </p>
-                </div>
-                <div className="bg-yellow-100 p-4 rounded-full">
-                  <svg className="w-8 h-8 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-              </div>
-            </Card>
-
-            <Card>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Completed Jobs</p>
-                  <p className="text-4xl font-bold text-gray-900 mt-2">
-                    {jobStats?.completedJobs || 0}
-                  </p>
-                </div>
-                <div className="bg-gray-100 p-4 rounded-full">
-                  <svg className="w-8 h-8 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-              </div>
-            </Card>
-
-            <Card>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Failed Jobs</p>
-                  <p className="text-4xl font-bold text-red-600 mt-2">
-                    {jobStats?.failedJobs || 0}
-                  </p>
-                </div>
-                <div className="bg-red-100 p-4 rounded-full">
-                  <svg className="w-8 h-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </div>
-              </div>
+              <p className="text-sm text-gray-500 mt-2">All scheduled jobs across all users</p>
             </Card>
           </div>
         </div>
@@ -162,7 +99,7 @@ export default function AdminReports() {
                 </svg>
               </div>
               <p className="text-3xl font-bold text-blue-900">
-                {jobStats?.jobsByType.EMAIL_REMINDER || 0}
+                {jobStats?.jobsByType.emailReminder || 0}
               </p>
               <p className="text-sm text-blue-700 mt-2">Custom reminders</p>
             </div>
@@ -175,7 +112,7 @@ export default function AdminReports() {
                 </svg>
               </div>
               <p className="text-3xl font-bold text-green-900">
-                {jobStats?.jobsByType.EMAIL_PRICES || 0}
+                {jobStats?.jobsByType.emailPrices || 0}
               </p>
               <p className="text-sm text-green-700 mt-2">Stock alerts via email</p>
             </div>
@@ -188,7 +125,7 @@ export default function AdminReports() {
                 </svg>
               </div>
               <p className="text-3xl font-bold text-purple-900">
-                {jobStats?.jobsByType.STORE_PRICES || 0}
+                {jobStats?.jobsByType.storePrices || 0}
               </p>
               <p className="text-sm text-purple-700 mt-2">Historical data collection</p>
             </div>
@@ -201,7 +138,7 @@ export default function AdminReports() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <Card>
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Emails Sent</p>
+                <p className="text-sm font-medium text-gray-600">Total Emails</p>
                 <p className="text-4xl font-bold text-gray-900 mt-2">
                   {emailStats?.totalEmails || 0}
                 </p>
@@ -210,31 +147,31 @@ export default function AdminReports() {
 
             <Card>
               <div>
-                <p className="text-sm font-medium text-gray-600">Today</p>
-                <p className="text-4xl font-bold text-blue-600 mt-2">
-                  {emailStats?.emailsSentToday || 0}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">Sent today</p>
-              </div>
-            </Card>
-
-            <Card>
-              <div>
-                <p className="text-sm font-medium text-gray-600">This Week</p>
+                <p className="text-sm font-medium text-gray-600">Successful</p>
                 <p className="text-4xl font-bold text-green-600 mt-2">
-                  {emailStats?.emailsSentThisWeek || 0}
+                  {emailStats?.successful || 0}
                 </p>
-                <p className="text-xs text-gray-500 mt-1">Last 7 days</p>
+                <p className="text-xs text-gray-500 mt-1">Delivered successfully</p>
               </div>
             </Card>
 
             <Card>
               <div>
-                <p className="text-sm font-medium text-gray-600">This Month</p>
-                <p className="text-4xl font-bold text-purple-600 mt-2">
-                  {emailStats?.emailsSentThisMonth || 0}
+                <p className="text-sm font-medium text-gray-600">Failed</p>
+                <p className="text-4xl font-bold text-red-600 mt-2">
+                  {emailStats?.failed || 0}
                 </p>
-                <p className="text-xs text-gray-500 mt-1">Last 30 days</p>
+                <p className="text-xs text-gray-500 mt-1">Delivery failures</p>
+              </div>
+            </Card>
+
+            <Card>
+              <div>
+                <p className="text-sm font-medium text-gray-600">Success Rate</p>
+                <p className="text-4xl font-bold text-blue-600 mt-2">
+                  {emailStats?.successRate || '0%'}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">Overall rate</p>
               </div>
             </Card>
           </div>
@@ -242,44 +179,44 @@ export default function AdminReports() {
 
         {/* Price Statistics */}
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Price Statistics</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Price Fetch Statistics</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <Card>
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Prices Stored</p>
+                <p className="text-sm font-medium text-gray-600">Total Fetches</p>
                 <p className="text-4xl font-bold text-gray-900 mt-2">
-                  {priceStats?.totalPrices || 0}
+                  {priceStats?.totalFetches || 0}
                 </p>
               </div>
             </Card>
 
             <Card>
               <div>
-                <p className="text-sm font-medium text-gray-600">Today</p>
-                <p className="text-4xl font-bold text-blue-600 mt-2">
-                  {priceStats?.pricesStoredToday || 0}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">Stored today</p>
-              </div>
-            </Card>
-
-            <Card>
-              <div>
-                <p className="text-sm font-medium text-gray-600">This Week</p>
+                <p className="text-sm font-medium text-gray-600">Successful</p>
                 <p className="text-4xl font-bold text-green-600 mt-2">
-                  {priceStats?.pricesStoredThisWeek || 0}
+                  {priceStats?.successful || 0}
                 </p>
-                <p className="text-xs text-gray-500 mt-1">Last 7 days</p>
+                <p className="text-xs text-gray-500 mt-1">Fetched successfully</p>
               </div>
             </Card>
 
             <Card>
               <div>
-                <p className="text-sm font-medium text-gray-600">This Month</p>
-                <p className="text-4xl font-bold text-purple-600 mt-2">
-                  {priceStats?.pricesStoredThisMonth || 0}
+                <p className="text-sm font-medium text-gray-600">Failed</p>
+                <p className="text-4xl font-bold text-red-600 mt-2">
+                  {priceStats?.failed || 0}
                 </p>
-                <p className="text-xs text-gray-500 mt-1">Last 30 days</p>
+                <p className="text-xs text-gray-500 mt-1">Fetch failures</p>
+              </div>
+            </Card>
+
+            <Card>
+              <div>
+                <p className="text-sm font-medium text-gray-600">Success Rate</p>
+                <p className="text-4xl font-bold text-blue-600 mt-2">
+                  {priceStats?.successRate || '0%'}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">Overall rate</p>
               </div>
             </Card>
           </div>
@@ -293,8 +230,8 @@ export default function AdminReports() {
               <p className="text-sm text-gray-600 mt-1">Different stocks being monitored</p>
             </div>
             <div className="text-right">
-              <p className="text-5xl font-bold text-primary">
-                {priceStats?.uniqueStockSymbols || 0}
+              <p className="text-5xl font-bold text-indigo-600">
+                {priceStats?.uniqueSymbols || 0}
               </p>
               <p className="text-sm text-gray-600 mt-1">Symbols</p>
             </div>

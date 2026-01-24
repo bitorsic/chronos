@@ -1,7 +1,18 @@
 import api from '../utils/api';
 import type { Job, CreateJobDto, UpdateJobDto } from '../types/job';
 import type { Execution } from '../types/execution';
-import type { PaginatedResponse } from '../types/api';
+import type { PaginatedResponse, Pagination } from '../types/api';
+
+// Backend response types (what the API actually returns)
+interface JobsResponse {
+  jobs: Job[];
+  pagination: Pagination;
+}
+
+interface ExecutionsResponse {
+  executions: Execution[];
+  pagination: Pagination;
+}
 
 // Backend request structures
 interface EmailReminderPayload {
@@ -9,8 +20,8 @@ interface EmailReminderPayload {
   subject: string;
   body: string;
   schedule: {
-    type: 'IMMEDIATE' | 'ONCE' | 'CRON';
-    scheduledTime?: string;
+    type: 'immediate' | 'once' | 'cron';
+    timestamp?: string;
     cronExpression?: string;
   };
 }
@@ -19,8 +30,8 @@ interface EmailPricesPayload {
   to: string[];
   symbols: string[];
   schedule: {
-    type: 'IMMEDIATE' | 'ONCE' | 'CRON';
-    scheduledTime?: string;
+    type: 'immediate' | 'once' | 'cron';
+    timestamp?: string;
     cronExpression?: string;
   };
 }
@@ -28,8 +39,8 @@ interface EmailPricesPayload {
 interface StorePricesPayload {
   symbol: string;
   schedule: {
-    type: 'IMMEDIATE' | 'ONCE' | 'CRON';
-    scheduledTime?: string;
+    type: 'immediate' | 'once' | 'cron';
+    timestamp?: string;
     cronExpression?: string;
   };
 }
@@ -42,8 +53,12 @@ export const jobService = {
     status?: string;
     jobType?: string;
   }): Promise<PaginatedResponse<Job>> => {
-    const response = await api.get<PaginatedResponse<Job>>('/jobs', { params });
-    return response.data;
+    const response = await api.get<JobsResponse>('/jobs', { params });
+    // Transform backend response to match PaginatedResponse type
+    return {
+      data: response.data.jobs,
+      pagination: response.data.pagination,
+    };
   },
 
   // Get single job by ID
@@ -58,7 +73,7 @@ export const jobService = {
     let payload: EmailReminderPayload | EmailPricesPayload | StorePricesPayload;
 
     // Map to correct endpoint and transform payload based on job type
-    if (data.jobType === 'EMAIL_REMINDER') {
+    if (data.jobType === 'emailReminder') {
       endpoint = '/jobs/email-reminder';
       payload = {
         to: data.data.to || [],
@@ -66,18 +81,18 @@ export const jobService = {
         body: data.data.body || '',
         schedule: {
           type: data.schedule.scheduleType,
-          scheduledTime: data.schedule.scheduledAt,
+          timestamp: data.schedule.scheduledAt,
           cronExpression: data.schedule.cronExpression,
         },
       };
-    } else if (data.jobType === 'EMAIL_PRICES') {
+    } else if (data.jobType === 'emailPrices') {
       endpoint = '/jobs/email-prices';
       payload = {
         to: data.data.to || [],
         symbols: data.data.symbols || [],
         schedule: {
           type: data.schedule.scheduleType,
-          scheduledTime: data.schedule.scheduledAt,
+          timestamp: data.schedule.scheduledAt,
           cronExpression: data.schedule.cronExpression,
         },
       };
@@ -88,7 +103,7 @@ export const jobService = {
         symbol: data.data.symbol || '',
         schedule: {
           type: data.schedule.scheduleType,
-          scheduledTime: data.schedule.scheduledAt,
+          timestamp: data.schedule.scheduledAt,
           cronExpression: data.schedule.cronExpression,
         },
       };
@@ -127,9 +142,13 @@ export const jobService = {
     limit?: number;
     status?: string;
   }): Promise<PaginatedResponse<Execution>> => {
-    const response = await api.get<PaginatedResponse<Execution>>('/jobs/executions/all', {
+    const response = await api.get<ExecutionsResponse>('/jobs/executions/all', {
       params,
     });
-    return response.data;
+    // Transform backend response to match PaginatedResponse type
+    return {
+      data: response.data.executions,
+      pagination: response.data.pagination,
+    };
   },
 };

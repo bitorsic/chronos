@@ -45,7 +45,7 @@ export default function Navbar() {
               >
                 Emails
               </Link>
-              {user?.role === 'ADMIN' && (
+              {user?.role === 'admin' && (
                 <Link
                   to="/admin/reports"
                   className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:text-primary transition-colors"
