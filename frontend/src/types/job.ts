@@ -38,9 +38,7 @@ export interface Job {
   userId: string;
   jobType: JobType;
   schedule: Schedule;
-  data: JobData;
-  createdAt: string;
-  updatedAt: string;
+  payload: JobData;
   nextRunAt?: string;
   lastRunAt?: string;
   lastRunStatus?: 'success' | 'failed';

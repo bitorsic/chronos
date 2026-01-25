@@ -26,6 +26,6 @@ const userSchema = new mongoose.Schema({
 		default: roles.CLIENT,
 		required: [true, 'Role cannot be empty'],
 	},
-});
+}, { timestamps: true });
 
 module.exports = mongoose.model('users', userSchema);

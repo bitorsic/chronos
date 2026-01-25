@@ -10,8 +10,6 @@ export interface User {
   username: string;
   email: string;
   role: UserRole;
-  createdAt: string;
-  updatedAt: string;
 }
 
 export interface LoginCredentials {
@@ -36,4 +34,29 @@ export interface AuthState {
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+}
+
+// User Management
+export interface CreateUserDto {
+  name: string;
+  email: string;
+  role: UserRole;
+}
+
+export interface CreateUserResponse {
+  message: string;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    role: UserRole;
+  };
+  temporaryPassword: string;
+}
+
+export interface UserListItem {
+  _id: string;
+  name: string;
+  email: string;
+  role: UserRole;
 }

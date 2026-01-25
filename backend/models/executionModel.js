@@ -26,7 +26,7 @@ const executionSchema = new mongoose.Schema({
 		type: Number,
 		required: [true, 'Attempt number is required'],
 	},
-}, { discriminatorKey: 'type' });
+}, { discriminatorKey: 'type', timestamps: true });
 
 const executionModel = mongoose.model('executions', executionSchema);
 

@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
+import { getErrorMessage } from '../utils/errorHandler';
 import Layout from '../components/Layout';
 import Card from '../components/Card';
 import Input from '../components/Input';
@@ -130,7 +131,7 @@ export default function CreateJob() {
       toast.success('Job created successfully!');
       navigate(`/jobs/${createdJob._id}`);
     } catch (error: any) {
-      toast.error(error?.message || 'Failed to create job');
+      toast.error(getErrorMessage(error, 'Failed to create job'));
     } finally {
       setIsLoading(false);
     }

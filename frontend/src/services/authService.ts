@@ -26,8 +26,6 @@ export const authService = {
         username: response.data.user.name,
         email: response.data.user.email,
         role: response.data.user.role as 'admin' | 'client',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
       },
     };
   },
@@ -46,8 +44,6 @@ export const authService = {
         username: response.data.user.name,
         email: response.data.user.email,
         role: response.data.user.role as 'admin' | 'client',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
       },
     };
   },

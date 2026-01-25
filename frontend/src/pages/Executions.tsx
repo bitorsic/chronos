@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
+import { getErrorMessage } from '../utils/errorHandler';
 import Layout from '../components/Layout';
 import Card from '../components/Card';
 import Badge from '../components/Badge';
@@ -16,8 +17,8 @@ export default function Executions() {
   const [executions, setExecutions] = useState<Execution[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
+  const [limit] = useState(10);
 
   // Filters
   const [statusFilter, setStatusFilter] = useState('');
@@ -29,17 +30,17 @@ export default function Executions() {
   const loadExecutions = async () => {
     setIsLoading(true);
     try {
+      const skip = (currentPage - 1) * limit;
       const response = await jobService.getExecutions({
-        page: currentPage,
-        limit: 10,
-        status: statusFilter || undefined,
+        limit,
+        skip,
+        executionStatus: statusFilter || undefined,
       });
       setExecutions(response.data);
       const { pagination } = response;
       setTotal(pagination.total);
-      setTotalPages(Math.ceil(pagination.total / pagination.limit));
     } catch (error: any) {
-      toast.error('Failed to load executions');
+      toast.error(getErrorMessage(error, 'Failed to load executions'));
     } finally {
       setIsLoading(false);
     }
@@ -150,10 +151,10 @@ export default function Executions() {
                           <div className="flex items-center">
                             <div>
                               <p className="text-sm font-medium text-gray-900">
-                                {execution.jobType.replace(/_/g, ' ')}
+                                {execution.jobId.jobType.replace(/([A-Z])/g, ' $1').trim()}
                               </p>
                               <Link
-                                to={`/jobs/${execution.jobId}`}
+                                to={`/jobs/${execution.jobId._id}`}
                                 className="text-xs text-primary hover:text-primary-hover"
                               >
                                 View Job
@@ -167,7 +168,7 @@ export default function Executions() {
                           </Badge>
                         </td>
                         <td className="px-4 py-4 text-sm text-gray-600">
-                          {format(new Date(execution.executedAt), 'MMM d, yyyy HH:mm:ss')}
+                          {format(new Date(execution.createdAt), 'MMM d, yyyy HH:mm:ss')}
                         </td>
                         <td className="px-4 py-4">
                           {execution.error ? (
@@ -193,11 +194,11 @@ export default function Executions() {
               </div>
 
               {/* Pagination */}
-              {totalPages > 1 && (
+              {total > limit && (
                 <div className="mt-6">
                   <Pagination
                     currentPage={currentPage}
-                    totalPages={totalPages}
+                    totalPages={Math.ceil(total / limit)}
                     onPageChange={setCurrentPage}
                   />
                 </div>

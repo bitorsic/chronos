@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
+import { getErrorMessage } from '../utils/errorHandler';
 import Layout from '../components/Layout';
 import Card from '../components/Card';
 import Badge from '../components/Badge';
@@ -31,7 +32,7 @@ export default function ExecutionDetails() {
     try {
       // Note: You'll need to add a getExecution endpoint to jobService
       // For now, we'll fetch executions and find the one we need
-      const executionsData = await jobService.getExecutions({ page: 1, limit: 100 });
+      const executionsData = await jobService.getExecutions({ limit: 100, skip: 0 });
       const foundExecution = executionsData.data.find((e) => e._id === executionId);
       
       if (!foundExecution) {
@@ -43,10 +44,10 @@ export default function ExecutionDetails() {
       setExecution(foundExecution);
 
       // Load job details
-      const jobData = await jobService.getJob(foundExecution.jobId);
+      const jobData = await jobService.getJob(foundExecution.jobId._id);
       setJob(jobData);
     } catch (error: any) {
-      toast.error('Failed to load execution details');
+      toast.error(getErrorMessage(error, 'Failed to load execution details'));
       navigate('/executions');
     } finally {
       setIsLoading(false);
@@ -86,7 +87,7 @@ export default function ExecutionDetails() {
               </Badge>
             </div>
             <p className="text-gray-600 mt-2">
-              {execution.jobType.replace(/_/g, ' ')}
+              {execution.jobId.jobType.replace(/([A-Z])/g, ' $1').trim()}
             </p>
           </div>
           <Button variant="secondary" onClick={() => navigate('/executions')}>
@@ -105,7 +106,7 @@ export default function ExecutionDetails() {
               <div>
                 <dt className="text-sm font-medium text-gray-500">Job Type</dt>
                 <dd className="text-sm text-gray-900 mt-1">
-                  {execution.jobType.replace(/([A-Z])/g, ' $1').trim()}
+                  {execution.jobId.jobType.replace(/([A-Z])/g, ' $1').trim()}
                 </dd>
               </div>
               <div>
@@ -115,17 +116,17 @@ export default function ExecutionDetails() {
               <div>
                 <dt className="text-sm font-medium text-gray-500">Executed At</dt>
                 <dd className="text-sm text-gray-900 mt-1">
-                  {format(new Date(execution.executedAt), 'MMMM d, yyyy HH:mm:ss')}
+                  {format(new Date(execution.createdAt), 'MMMM d, yyyy HH:mm:ss')}
                 </dd>
               </div>
               <div>
                 <dt className="text-sm font-medium text-gray-500">Job ID</dt>
                 <dd className="text-sm mt-1">
                   <Link
-                    to={`/jobs/${execution.jobId}`}
+                    to={`/jobs/${execution.jobId._id}`}
                     className="text-primary hover:text-primary-hover font-mono"
                   >
-                    {execution.jobId}
+                    {execution.jobId._id}
                   </Link>
                 </dd>
               </div>
@@ -166,17 +167,17 @@ export default function ExecutionDetails() {
                     </dd>
                   </div>
                 )}
-                {job.data.subject && (
+                {job.payload.subject && (
                   <div>
                     <dt className="text-sm font-medium text-gray-500">Subject</dt>
-                    <dd className="text-sm text-gray-900 mt-1">{job.data.subject}</dd>
+                    <dd className="text-sm text-gray-900 mt-1">{job.payload.subject}</dd>
                   </div>
                 )}
-                {job.data.symbols && job.data.symbols.length > 0 && (
+                {job.payload.symbols && job.payload.symbols.length > 0 && (
                   <div>
                     <dt className="text-sm font-medium text-gray-500 mb-2">Stock Symbols</dt>
                     <dd className="flex flex-wrap gap-2">
-                      {job.data.symbols.map((symbol: string) => (
+                      {job.payload.symbols.map((symbol: string) => (
                         <Badge key={symbol} variant="info">
                           {symbol}
                         </Badge>
@@ -184,11 +185,11 @@ export default function ExecutionDetails() {
                     </dd>
                   </div>
                 )}
-                {job.data.symbol && (
+                {job.payload.symbol && (
                   <div>
                     <dt className="text-sm font-medium text-gray-500">Stock Symbol</dt>
                     <dd className="text-sm text-gray-900 mt-1">
-                      <Badge variant="info">{job.data.symbol}</Badge>
+                      <Badge variant="info">{job.payload.symbol}</Badge>
                     </dd>
                   </div>
                 )}
@@ -232,18 +233,35 @@ export default function ExecutionDetails() {
         )}
 
         {/* Metadata */}
-        {execution.metadata && Object.keys(execution.metadata).length > 0 && (
-          <Card title="Metadata">
-            <pre className="bg-gray-50 p-4 rounded-lg overflow-x-auto text-sm">
-              {JSON.stringify(execution.metadata, null, 2)}
-            </pre>
+        {execution.type === 'email' && execution.metadata && execution.metadata.length > 0 && (
+          <Card title="Price Metadata">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Symbol</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Price</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Currency</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {execution.metadata.map((item, index) => (
+                    <tr key={index}>
+                      <td className="px-4 py-2 text-sm">{item.symbol}</td>
+                      <td className="px-4 py-2 text-sm">{item.price.toFixed(2)}</td>
+                      <td className="px-4 py-2 text-sm">{item.currency}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </Card>
         )}
 
         {/* Quick Actions */}
         <Card title="Quick Actions">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <Link to={`/jobs/${execution.jobId}`}>
+            <Link to={`/jobs/${execution.jobId._id}`}>
               <Button variant="secondary" className="w-full">
                 View Related Job
               </Button>
@@ -253,15 +271,15 @@ export default function ExecutionDetails() {
                 View All Executions
               </Button>
             </Link>
-            {execution.jobType === 'emailPrices' && (
-              <Link to={`/jobs/${execution.jobId}/emails`}>
+            {execution.jobId.jobType === 'emailPrices' && (
+              <Link to={`/jobs/${execution.jobId._id}/emails`}>
                 <Button variant="secondary" className="w-full">
                   View Sent Emails
                 </Button>
               </Link>
             )}
-            {execution.jobType === 'storePrices' && (
-              <Link to={`/jobs/${execution.jobId}/prices`}>
+            {execution.jobId.jobType === 'storePrices' && (
+              <Link to={`/jobs/${execution.jobId._id}/prices`}>
                 <Button variant="secondary" className="w-full">
                   View Stored Prices
                 </Button>

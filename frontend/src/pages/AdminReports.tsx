@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { getErrorMessage } from '../utils/errorHandler';
 import Layout from '../components/Layout';
 import Card from '../components/Card';
 import Spinner from '../components/Spinner';
@@ -30,7 +31,7 @@ export default function AdminReports() {
       setEmailStats(emails);
       setPriceStats(prices);
     } catch (error: any) {
-      toast.error('Failed to load admin reports');
+      toast.error(getErrorMessage(error, 'Failed to load admin reports'));
     } finally {
       setIsLoading(false);
     }

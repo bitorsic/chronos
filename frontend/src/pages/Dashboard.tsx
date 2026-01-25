@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 import { useAuth } from '../hooks/useAuth';
+import { getErrorMessage } from '../utils/errorHandler';
 import Layout from '../components/Layout';
 import Card from '../components/Card';
 import Badge from '../components/Badge';
@@ -48,13 +49,13 @@ function ClientDashboard() {
     setIsLoading(true);
     try {
       const [jobsData, executionsData] = await Promise.all([
-        jobService.getJobs({ page: 1, limit: 5 }),
-        jobService.getExecutions({ page: 1, limit: 5 }),
+        jobService.getJobs({ limit: 5, skip: 0 }),
+        jobService.getExecutions({ limit: 5, skip: 0 }),
       ]);
       setJobs(jobsData.data || []);
       setExecutions(executionsData.data || []);
     } catch (error: any) {
-      toast.error('Failed to load dashboard data');
+      toast.error(getErrorMessage(error, 'Failed to load dashboard data'));
     } finally {
       setIsLoading(false);
     }
@@ -153,7 +154,6 @@ function ClientDashboard() {
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Schedule</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Last Run</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Created</th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
                 </tr>
               </thead>
@@ -170,9 +170,6 @@ function ClientDashboard() {
                       ) : (
                         <span className="text-sm text-gray-500">Never run</span>
                       )}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">
-                      {format(new Date(job.createdAt), 'MMM d, yyyy')}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <Link
@@ -215,14 +212,16 @@ function ClientDashboard() {
               <tbody className="divide-y divide-gray-200">
                 {executions.map((execution) => (
                   <tr key={execution._id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-sm text-gray-900">{execution.jobType}</td>
+                    <td className="px-4 py-3 text-sm text-gray-900">
+                      {execution.jobId.jobType.replace(/([A-Z])/g, ' $1').trim()}
+                    </td>
                     <td className="px-4 py-3">
                       <Badge variant={execution.executionStatus === 'success' ? 'success' : 'error'}>
                         {execution.executionStatus}
                       </Badge>
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-600">
-                      {format(new Date(execution.executedAt), 'MMM d, yyyy HH:mm')}
+                      {format(new Date(execution.createdAt), 'MMM d, yyyy HH:mm')}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <Link
@@ -273,7 +272,7 @@ function AdminDashboard() {
       setEmailStats(emails);
       setPriceStats(prices);
     } catch (error: any) {
-      toast.error('Failed to load admin statistics');
+      toast.error(getErrorMessage(error, 'Failed to load admin statistics'));
     } finally {
       setIsLoading(false);
     }

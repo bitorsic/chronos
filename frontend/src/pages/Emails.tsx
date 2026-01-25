@@ -2,12 +2,12 @@ import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
+import { getErrorMessage } from '../utils/errorHandler';
 import Layout from '../components/Layout';
 import Card from '../components/Card';
 import Badge from '../components/Badge';
 import Spinner from '../components/Spinner';
 import Pagination from '../components/Pagination';
-import Modal from '../components/Modal';
 import { historyService } from '../services/historyService';
 import type { Email } from '../types/email';
 
@@ -18,12 +18,8 @@ export default function Emails() {
   const [emails, setEmails] = useState<Email[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
-
-  // Modal state
-  const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
-  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [limit] = useState(10);
 
   useEffect(() => {
     loadEmails();
@@ -32,9 +28,10 @@ export default function Emails() {
   const loadEmails = async () => {
     setIsLoading(true);
     try {
+      const skip = (currentPage - 1) * limit;
       const params = {
-        page: currentPage,
-        limit: 10,
+        limit,
+        skip,
       };
 
       const response = jobIdParam
@@ -42,18 +39,12 @@ export default function Emails() {
         : await historyService.getEmails(params);
 
       setEmails(response.emails);
-      setTotalPages(response.totalPages);
-      setTotal(response.total);
+      setTotal(response.pagination.total);
     } catch (error: any) {
-      toast.error('Failed to load emails');
+      toast.error(getErrorMessage(error, 'Failed to load emails'));
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleViewEmail = (email: Email) => {
-    setSelectedEmail(email);
-    setShowEmailModal(true);
   };
 
   return (
@@ -140,7 +131,13 @@ export default function Emails() {
                         Subject
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        Type
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                         Recipient
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        Status
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                         Sent At
@@ -159,30 +156,34 @@ export default function Emails() {
                           </p>
                         </td>
                         <td className="px-4 py-4">
-                          <Badge variant="info">{email.to}</Badge>
+                          <Badge variant="default">{email.emailType}</Badge>
+                        </td>
+                        <td className="px-4 py-4">
+                          <span className="text-sm text-gray-600">{email.to}</span>
+                        </td>
+                        <td className="px-4 py-4">
+                          <Badge variant={email.executionStatus === 'success' ? 'success' : 'error'}>
+                            {email.executionStatus}
+                          </Badge>
                         </td>
                         <td className="px-4 py-4 text-sm text-gray-600">
-                          {format(new Date(email.sentAt), 'MMM d, yyyy HH:mm:ss')}
+                          {format(new Date(email.createdAt), 'MMM d, yyyy HH:mm:ss')}
                         </td>
                         <td className="px-4 py-4 text-right space-x-3">
-                          <button
-                            onClick={() => handleViewEmail(email)}
-                            className="text-primary hover:text-primary-hover text-sm font-medium"
-                          >
-                            View
-                          </button>
                           <Link
-                            to={`/jobs/${email.jobId}`}
+                            to={`/executions/${email._id}`}
                             className="text-primary hover:text-primary-hover text-sm font-medium"
                           >
-                            Job
+                            View Details
                           </Link>
-                          <Link
-                            to={`/executions/${email.executionId}`}
-                            className="text-primary hover:text-primary-hover text-sm font-medium"
-                          >
-                            Execution
-                          </Link>
+                          {email.jobId && (
+                            <Link
+                              to={`/jobs/${email.jobId._id}`}
+                              className="text-primary hover:text-primary-hover text-sm font-medium"
+                            >
+                              Job
+                            </Link>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -191,11 +192,11 @@ export default function Emails() {
               </div>
 
               {/* Pagination */}
-              {totalPages > 1 && (
+              {total > limit && (
                 <div className="mt-6">
                   <Pagination
                     currentPage={currentPage}
-                    totalPages={totalPages}
+                    totalPages={Math.ceil(total / limit)}
                     onPageChange={setCurrentPage}
                   />
                 </div>
@@ -204,56 +205,6 @@ export default function Emails() {
           )}
         </Card>
       </div>
-
-      {/* Email Preview Modal */}
-      <Modal
-        isOpen={showEmailModal}
-        onClose={() => setShowEmailModal(false)}
-        title="Email Details"
-        size="lg"
-      >
-        {selectedEmail && (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
-              <p className="text-sm text-gray-900">{selectedEmail.subject}</p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Recipient</label>
-              <p className="text-sm text-gray-900">{selectedEmail.to}</p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Sent At</label>
-              <p className="text-sm text-gray-900">
-                {format(new Date(selectedEmail.sentAt), 'MMMM d, yyyy HH:mm:ss')}
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Email Body</label>
-              <div
-                className="bg-gray-50 rounded-lg p-4 max-h-96 overflow-y-auto border border-gray-200"
-                dangerouslySetInnerHTML={{ __html: selectedEmail.body }}
-              />
-            </div>
-
-            <div className="flex space-x-3">
-              <Link to={`/jobs/${selectedEmail.jobId}`} className="flex-1">
-                <button className="w-full px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors">
-                  View Related Job
-                </button>
-              </Link>
-              <Link to={`/executions/${selectedEmail.executionId}`} className="flex-1">
-                <button className="w-full px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors">
-                  View Execution
-                </button>
-              </Link>
-            </div>
-          </div>
-        )}
-      </Modal>
     </Layout>
   );
 }

@@ -11,47 +11,55 @@ export default function Navbar() {
           {/* Logo and primary navigation */}
           <div className="flex">
             <Link to="/dashboard" className="flex items-center">
-              <span className="text-2xl font-bold text-primary">Chronos</span>
+              <span className="text-2xl font-bold text-indigo-600">Chronos</span>
             </Link>
             
             <div className="hidden sm:ml-8 sm:flex sm:space-x-4">
               <Link
                 to="/dashboard"
-                className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:text-primary transition-colors"
+                className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:text-indigo-600 transition-colors"
               >
                 Dashboard
               </Link>
               <Link
                 to="/jobs"
-                className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:text-primary transition-colors"
+                className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:text-indigo-600 transition-colors"
               >
                 Jobs
               </Link>
               <Link
                 to="/executions"
-                className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:text-primary transition-colors"
+                className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:text-indigo-600 transition-colors"
               >
                 Executions
               </Link>
               <Link
                 to="/prices"
-                className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:text-primary transition-colors"
+                className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:text-indigo-600 transition-colors"
               >
                 Prices
               </Link>
               <Link
                 to="/emails"
-                className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:text-primary transition-colors"
+                className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:text-indigo-600 transition-colors"
               >
                 Emails
               </Link>
               {user?.role === 'admin' && (
-                <Link
-                  to="/admin/reports"
-                  className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:text-primary transition-colors"
-                >
-                  Admin Reports
-                </Link>
+                <>
+                  <Link
+                    to="/admin/reports"
+                    className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:text-indigo-600 transition-colors"
+                  >
+                    Reports
+                  </Link>
+                  <Link
+                    to="/admin/users"
+                    className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:text-indigo-600 transition-colors"
+                  >
+                    Users
+                  </Link>
+                </>
               )}
             </div>
           </div>
@@ -66,7 +74,7 @@ export default function Navbar() {
             </div>
             <button
               onClick={logout}
-              className="px-4 py-2 text-sm font-medium text-white bg-primary hover:bg-primary-hover rounded-lg transition-colors"
+              className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors"
             >
               Logout
             </button>

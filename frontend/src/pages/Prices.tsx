@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
+import { getErrorMessage } from '../utils/errorHandler';
 import Layout from '../components/Layout';
 import Card from '../components/Card';
 import Badge from '../components/Badge';
@@ -19,8 +20,8 @@ export default function Prices() {
   const [prices, setPrices] = useState<Price[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
+  const [limit] = useState(20);
 
   // Filters
   const [stockSymbolFilter, setStockSymbolFilter] = useState('');
@@ -33,10 +34,11 @@ export default function Prices() {
   const loadPrices = async () => {
     setIsLoading(true);
     try {
+      const skip = (currentPage - 1) * limit;
       const params = {
-        page: currentPage,
-        limit: 20,
-        ...(appliedFilter && { stockSymbol: appliedFilter }),
+        limit,
+        skip,
+        ...(appliedFilter && { symbol: appliedFilter }),
       };
 
       const response = jobIdParam
@@ -44,10 +46,9 @@ export default function Prices() {
         : await historyService.getPrices(params);
 
       setPrices(response.prices);
-      setTotalPages(response.totalPages);
-      setTotal(response.total);
+      setTotal(response.pagination.total);
     } catch (error: any) {
-      toast.error('Failed to load prices');
+      toast.error(getErrorMessage(error, 'Failed to load prices'));
     } finally {
       setIsLoading(false);
     }
@@ -65,7 +66,7 @@ export default function Prices() {
   };
 
   // Get unique stock symbols from current page
-  const uniqueSymbols = [...new Set(prices.map((p) => p.stockSymbol))];
+  const uniqueSymbols = [...new Set(prices.map((p) => p.symbol))];
 
   return (
     <Layout>
@@ -198,9 +199,6 @@ export default function Prices() {
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                         Timestamp
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        Stored At
-                      </th>
                       <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
                         Actions
                       </th>
@@ -210,7 +208,7 @@ export default function Prices() {
                     {prices.map((price) => (
                       <tr key={price._id} className="hover:bg-gray-50">
                         <td className="px-4 py-4">
-                          <Badge variant="info">{price.stockSymbol}</Badge>
+                          <Badge variant="info">{price.symbol}</Badge>
                         </td>
                         <td className="px-4 py-4">
                           <span className="text-sm font-semibold text-gray-900">
@@ -219,23 +217,14 @@ export default function Prices() {
                         </td>
                         <td className="px-4 py-4 text-sm text-gray-600">{price.currency}</td>
                         <td className="px-4 py-4 text-sm text-gray-600">
-                          {format(new Date(price.timestamp), 'MMM d, yyyy HH:mm')}
-                        </td>
-                        <td className="px-4 py-4 text-sm text-gray-600">
-                          {format(new Date(price.createdAt), 'MMM d, yyyy HH:mm')}
+                          {format(new Date(price.fetchedAt), 'MMM d, yyyy HH:mm')}
                         </td>
                         <td className="px-4 py-4 text-right space-x-3">
                           <Link
-                            to={`/jobs/${price.jobId}`}
+                            to={`/executions/${price._id}`}
                             className="text-primary hover:text-primary-hover text-sm font-medium"
                           >
-                            View Job
-                          </Link>
-                          <Link
-                            to={`/executions/${price.executionId}`}
-                            className="text-primary hover:text-primary-hover text-sm font-medium"
-                          >
-                            View Execution
+                            View Details
                           </Link>
                         </td>
                       </tr>
@@ -245,11 +234,11 @@ export default function Prices() {
               </div>
 
               {/* Pagination */}
-              {totalPages > 1 && (
+              {total > limit && (
                 <div className="mt-6">
                   <Pagination
                     currentPage={currentPage}
-                    totalPages={totalPages}
+                    totalPages={Math.ceil(total / limit)}
                     onPageChange={setCurrentPage}
                   />
                 </div>

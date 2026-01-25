@@ -23,7 +23,7 @@ const jobSchema = new mongoose.Schema({
 		type: String,
 		enum: Object.values(progressStatuses),
 	},
-}, { discriminatorKey: 'jobType' });
+}, { discriminatorKey: 'jobType', timestamps: true });
 
 const jobModel = mongoose.model('jobs', jobSchema);
 

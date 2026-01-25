@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
+import { getErrorMessage } from '../utils/errorHandler';
 import Layout from '../components/Layout';
 import Card from '../components/Card';
 import Badge from '../components/Badge';
@@ -39,7 +40,7 @@ export default function JobDetails() {
       setJob(jobData);
       setExecutions(executionsData.data);
     } catch (error: any) {
-      toast.error('Failed to load job details');
+      toast.error(getErrorMessage(error, 'Failed to load job details'));
       navigate('/jobs');
     } finally {
       setIsLoading(false);
@@ -55,7 +56,7 @@ export default function JobDetails() {
       toast.success('Job deleted successfully');
       navigate('/jobs');
     } catch (error: any) {
-      toast.error('Failed to delete job');
+      toast.error(getErrorMessage(error, 'Failed to delete job'));
     } finally {
       setIsDeleting(false);
       setShowDeleteModal(false);
@@ -98,8 +99,8 @@ export default function JobDetails() {
                 </Badge>
               )}
             </div>
-            {job.data.subject && (
-              <p className="text-gray-600 mt-2">{job.data.subject}</p>
+            {job.payload.subject && (
+              <p className="text-gray-600 mt-2">{job.payload.subject}</p>
             )}
           </div>
           <div className="flex space-x-3">
@@ -158,12 +159,6 @@ export default function JobDetails() {
                   </dd>
                 </div>
               )}
-              <div>
-                <dt className="text-sm font-medium text-gray-500">Created At</dt>
-                <dd className="text-sm text-gray-900 mt-1">
-                  {format(new Date(job.createdAt), 'MMM d, yyyy HH:mm')}
-                </dd>
-              </div>
               {job.nextRunAt && (
                 <div>
                   <dt className="text-sm font-medium text-gray-500">Next Run At</dt>
@@ -184,19 +179,19 @@ export default function JobDetails() {
           </Card>
 
           <Card title="Job Data">
-            {job.data.body && (
+            {job.payload.body && (
               <div className="mb-4">
                 <dt className="text-sm font-medium text-gray-500">Message</dt>
                 <dd className="text-sm text-gray-900 mt-1 whitespace-pre-wrap">
-                  {job.data.body}
+                  {job.payload.body}
                 </dd>
               </div>
             )}
-            {job.data.symbols && job.data.symbols.length > 0 && (
+            {job.payload.symbols && job.payload.symbols.length > 0 && (
               <div>
                 <dt className="text-sm font-medium text-gray-500 mb-2">Stock Symbols</dt>
                 <div className="flex flex-wrap gap-2">
-                  {job.data.symbols.map((symbol: string) => (
+                  {job.payload.symbols.map((symbol: string) => (
                     <Badge key={symbol} variant="info">
                       {symbol}
                     </Badge>
@@ -204,11 +199,11 @@ export default function JobDetails() {
                 </div>
               </div>
             )}
-            {job.data.symbol && (
+            {job.payload.symbol && (
               <div>
                 <dt className="text-sm font-medium text-gray-500">Stock Symbol</dt>
                 <dd className="text-sm text-gray-900 mt-1">
-                  <Badge variant="info">{job.data.symbol}</Badge>
+                  <Badge variant="info">{job.payload.symbol}</Badge>
                 </dd>
               </div>
             )}
@@ -247,7 +242,7 @@ export default function JobDetails() {
                         </Badge>
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600">
-                        {format(new Date(execution.executedAt), 'MMM d, yyyy HH:mm:ss')}
+                        {format(new Date(execution.createdAt), 'MMM d, yyyy HH:mm:ss')}
                       </td>
                       <td className="px-4 py-3 text-sm text-error">
                         {execution.error || '-'}

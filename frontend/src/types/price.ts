@@ -1,19 +1,20 @@
 export interface Price {
   _id: string;
-  jobId: string;
-  userId: string;
-  executionId: string;
-  stockSymbol: string;
+  symbol: string;
   price: number;
   currency: string;
-  timestamp: string;
-  createdAt: string;
+  fetchedAt: string;
+  executionStatus?: 'success' | 'failed';
+  error?: string;
+  attempt?: number;
 }
 
 export interface PriceHistory {
   prices: Price[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
+  pagination: {
+    total: number;
+    limit: number;
+    skip: number;
+    hasMore: boolean;
+  };
 }

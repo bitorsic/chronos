@@ -53,6 +53,7 @@ const getEmails = async (req, res) => {
 			},
 		});
 	} catch (err) {
+		console.error(err);
 		const [status, message] = handleError(err);
 		res.status(status).send({ message });
 	}

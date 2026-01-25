@@ -54,7 +54,7 @@ components:
           description: User's email address
         role:
           type: string
-          enum: [ADMIN, CLIENT]
+          enum: [admin, client]
           description: User role
 
     Schedule:
@@ -375,7 +375,7 @@ paths:
         '401':
           $ref: '#/components/responses/UnauthorizedError'
 
-  /users/users:
+  /users:
     post:
       tags:
         - Users
@@ -403,8 +403,8 @@ paths:
                   example: "john@example.com"
                 role:
                   type: string
-                  enum: [ADMIN, CLIENT]
-                  example: "CLIENT"
+                  enum: [admin, client]
+                  example: "client"
       responses:
         '201':
           description: User created successfully

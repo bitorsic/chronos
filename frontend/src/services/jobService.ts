@@ -48,9 +48,8 @@ interface StorePricesPayload {
 export const jobService = {
   // Get all jobs for the user (with pagination and filters)
   getJobs: async (params?: {
-    page?: number;
     limit?: number;
-    status?: string;
+    skip?: number;
     jobType?: string;
   }): Promise<PaginatedResponse<Job>> => {
     const response = await api.get<JobsResponse>('/jobs', { params });
@@ -138,9 +137,11 @@ export const jobService = {
 
   // Get recent executions for all jobs
   getExecutions: async (params?: {
-    page?: number;
     limit?: number;
-    status?: string;
+    skip?: number;
+    jobId?: string;
+    executionStatus?: string;
+    type?: string;
   }): Promise<PaginatedResponse<Execution>> => {
     const response = await api.get<ExecutionsResponse>('/jobs/executions/all', {
       params,

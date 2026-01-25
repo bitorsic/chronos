@@ -14,6 +14,7 @@ import ExecutionDetails from './pages/ExecutionDetails.tsx';
 import Prices from './pages/Prices.tsx';
 import Emails from './pages/Emails.tsx';
 import AdminReports from './pages/AdminReports.tsx';
+import Users from './pages/Users.tsx';
 
 function App() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -111,6 +112,15 @@ function App() {
         element={
           <ProtectedRoute requireAdmin>
             <AdminReports />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/users"
+        element={
+          <ProtectedRoute requireAdmin>
+            <Users />
           </ProtectedRoute>
         }
       />

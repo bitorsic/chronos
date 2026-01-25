@@ -36,6 +36,7 @@ const createEmailReminderJob = async (req, res) => {
 			},
 		});
 	} catch (err) {
+		console.error(err);
 		const [status, message] = handleError(err);
 		res.status(status).send({ message });
 	}
@@ -71,6 +72,7 @@ const createEmailPricesJob = async (req, res) => {
 			},
 		});
 	} catch (err) {
+		console.error(err);
 		const [status, message] = handleError(err);
 		res.status(status).send({ message });
 	}
@@ -105,6 +107,7 @@ const createStorePricesJob = async (req, res) => {
 			},
 		});
 	} catch (err) {
+		console.error(err);
 		const [status, message] = handleError(err);
 		res.status(status).send({ message });
 	}
@@ -142,6 +145,7 @@ const getJobs = async (req, res) => {
 			},
 		});
 	} catch (err) {
+		console.error(err);
 		const [status, message] = handleError(err);
 		res.status(status).send({ message });
 	}
@@ -161,6 +165,7 @@ const getJobById = async (req, res) => {
 
 		res.status(200).send({ job });
 	} catch (err) {
+		console.error(err);
 		const [status, message] = handleError(err);
 		res.status(status).send({ message });
 	}
@@ -202,6 +207,7 @@ const deleteJob = async (req, res) => {
 
 		res.status(200).send({ message: 'Job deleted successfully' });
 	} catch (err) {
+		console.error(err);
 		const [status, message] = handleError(err);
 		res.status(status).send({ message });
 	}
@@ -246,6 +252,7 @@ const getExecutions = async (req, res) => {
 			},
 		});
 	} catch (err) {
+		console.error(err);
 		const [status, message] = handleError(err);
 		res.status(status).send({ message });
 	}
@@ -268,6 +275,7 @@ const getExecutionById = async (req, res) => {
 
 		res.status(200).send({ execution });
 	} catch (err) {
+		console.error(err);
 		const [status, message] = handleError(err);
 		res.status(status).send({ message });
 	}
@@ -310,6 +318,7 @@ const getJobPrices = async (req, res) => {
 			},
 		});
 	} catch (err) {
+		console.error(err);
 		const [status, message] = handleError(err);
 		res.status(status).send({ message });
 	}
@@ -357,6 +366,7 @@ const getJobEmails = async (req, res) => {
 			},
 		});
 	} catch (err) {
+		console.error(err);
 		const [status, message] = handleError(err);
 		res.status(status).send({ message });
 	}

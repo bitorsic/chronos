@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
 import { useAuth } from '../hooks/useAuth';
+import { getErrorMessage } from '../utils/errorHandler';
 import Input from '../components/Input';
 import Button from '../components/Button';
 import Card from '../components/Card';
@@ -36,7 +37,7 @@ export default function Login() {
       toast.success('Login successful!');
       navigate('/dashboard');
     } catch (error: any) {
-      toast.error(error?.message || 'Login failed. Please try again.');
+      toast.error(getErrorMessage(error, 'Login failed. Please try again.'));
     } finally {
       setIsLoading(false);
     }

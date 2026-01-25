@@ -56,6 +56,7 @@ const getJobsReport = async (req, res) => {
 			byUser,
 		});
 	} catch (err) {
+		console.error(err);
 		const [status, message] = handleError(err);
 		res.status(status).send({ message });
 	}
@@ -66,7 +67,7 @@ const getEmailsReport = async (req, res) => {
 	try {
 		const totalEmails = await emailExecutionModel.countDocuments();
 		const successful = await emailExecutionModel.countDocuments({ executionStatus: progressStatuses.SUCCESS });
-		const failed = await emailExecutionModel.countDocuments({ executionStatus: progressStatuses.FAILURE });
+		const failed = await emailExecutionModel.countDocuments({ executionStatus: progressStatuses.FAILED });
 
 		// Emails per user
 		const byUser = await emailExecutionModel.aggregate([
@@ -78,7 +79,7 @@ const getEmailsReport = async (req, res) => {
 						$sum: { $cond: [{ $eq: ['$executionStatus', progressStatuses.SUCCESS] }, 1, 0] },
 					},
 					failed: {
-						$sum: { $cond: [{ $eq: ['$executionStatus', progressStatuses.FAILURE] }, 1, 0] },
+						$sum: { $cond: [{ $eq: ['$executionStatus', progressStatuses.FAILED] }, 1, 0] },
 					},
 				},
 			},
@@ -116,6 +117,7 @@ const getEmailsReport = async (req, res) => {
 			byUser,
 		});
 	} catch (err) {
+		console.error(err);
 		const [status, message] = handleError(err);
 		res.status(status).send({ message });
 	}
@@ -126,7 +128,7 @@ const getPricesReport = async (req, res) => {
 	try {
 		const totalFetches = await storageExecutionModel.countDocuments();
 		const successful = await storageExecutionModel.countDocuments({ executionStatus: progressStatuses.SUCCESS });
-		const failed = await storageExecutionModel.countDocuments({ executionStatus: progressStatuses.FAILURE });
+		const failed = await storageExecutionModel.countDocuments({ executionStatus: progressStatuses.FAILED });
 		const uniqueSymbols = await storageExecutionModel.distinct('symbol');
 
 		// Fetches per user
@@ -139,7 +141,7 @@ const getPricesReport = async (req, res) => {
 						$sum: { $cond: [{ $eq: ['$executionStatus', progressStatuses.SUCCESS] }, 1, 0] },
 					},
 					failed: {
-						$sum: { $cond: [{ $eq: ['$executionStatus', progressStatuses.FAILURE] }, 1, 0] },
+						$sum: { $cond: [{ $eq: ['$executionStatus', progressStatuses.FAILED] }, 1, 0] },
 					},
 				},
 			},
@@ -178,6 +180,7 @@ const getPricesReport = async (req, res) => {
 			byUser,
 		});
 	} catch (err) {
+		console.error(err);
 		const [status, message] = handleError(err);
 		res.status(status).send({ message });
 	}

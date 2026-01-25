@@ -1,19 +1,30 @@
 export interface Email {
   _id: string;
-  jobId: string;
-  userId: string;
-  executionId: string;
+  emailType: 'reminder' | 'prices';
   to: string;
   subject: string;
-  body: string;
-  sentAt: string;
+  executionStatus: 'success' | 'failed';
+  error?: string;
+  attempt: number;
+  metadata?: Array<{
+    symbol: string;
+    price: number;
+    currency: string;
+  }>;
   createdAt: string;
+  jobId?: {
+    _id: string;
+    jobType: string;
+    schedule: any;
+  };
 }
 
 export interface EmailHistory {
   emails: Email[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
+  pagination: {
+    total: number;
+    limit: number;
+    skip: number;
+    hasMore: boolean;
+  };
 }
