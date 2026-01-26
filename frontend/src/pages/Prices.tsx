@@ -212,10 +212,10 @@ export default function Prices() {
                         </td>
                         <td className="px-4 py-4">
                           <span className="text-sm font-semibold text-gray-900">
-                            {price.price.toFixed(2)}
+                            {price.price != null ? price.price.toFixed(2) : 'N/A'}
                           </span>
                         </td>
-                        <td className="px-4 py-4 text-sm text-gray-600">{price.currency}</td>
+                        <td className="px-4 py-4 text-sm text-gray-600">{price.currency || 'N/A'}</td>
                         <td className="px-4 py-4 text-sm text-gray-600">
                           {format(new Date(price.fetchedAt), 'MMM d, yyyy HH:mm')}
                         </td>

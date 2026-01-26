@@ -32,15 +32,18 @@ export default function Jobs() {
     setIsLoading(true);
     try {
       const skip = (currentPage - 1) * limit;
+      console.log('Loading jobs with params:', { limit, skip, jobType: typeFilter || undefined });
       const response = await jobService.getJobs({
         limit,
         skip,
         jobType: typeFilter || undefined,
       });
+      console.log('Jobs response:', response);
       setJobs(response.data);
       const { pagination } = response;
       setTotal(pagination.total);
     } catch (error: any) {
+      console.error('Failed to load jobs:', error);
       toast.error(getErrorMessage(error, 'Failed to load jobs'));
     } finally {
       setIsLoading(false);

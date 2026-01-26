@@ -3,7 +3,7 @@ const { executionModel, storageExecutionModel, emailExecutionModel } = require('
 const { handleError } = require('../utils/errorHandler');
 const { addJobToQueue, removeJobFromQueue } = require('../utils/helpers');
 const { emailReminderQueue, emailPricesQueue, storePricesQueue } = require('../queues/jobQueue');
-const { jobTypes } = require('../utils/constants');
+const { jobTypes, roles } = require('../utils/constants');
 
 // Create email reminder job
 const createEmailReminderJob = async (req, res) => {
@@ -117,10 +117,11 @@ const createStorePricesJob = async (req, res) => {
 const getJobs = async (req, res) => {
 	try {
 		const userId = req.user.id;
+		const userRole = req.user.role;
 		const { jobType, limit = 50, skip = 0 } = req.query;
 
-		// Build query
-		const query = { userId };
+		// Build query - admins can see all jobs, clients only see their own
+		const query = userRole === roles.ADMIN ? {} : { userId };
 		if (jobType) {
 			query.jobType = jobType;
 		}
@@ -131,7 +132,8 @@ const getJobs = async (req, res) => {
 			.sort({ createdAt: -1 })
 			.limit(parseInt(limit))
 			.skip(parseInt(skip))
-			.select('-__v');
+			.select('-__v')
+			.populate('userId', 'name email'); // Populate user info for admin view
 
 		const total = await jobModel.countDocuments(query);
 
@@ -155,9 +157,16 @@ const getJobs = async (req, res) => {
 const getJobById = async (req, res) => {
 	try {
 		const userId = req.user.id;
+		const userRole = req.user.role;
 		const { jobId } = req.params;
 
-		const job = await jobModel.findOne({ _id: jobId, userId }).select('-__v');
+		// Build query - admins can view any job, clients only their own
+		const query = userRole === roles.ADMIN ? { _id: jobId } : { _id: jobId, userId };
+
+		const job = await jobModel
+			.findOne(query)
+			.select('-__v')
+			.populate('userId', 'name email'); // Populate user info
 
 		if (!job) {
 			return res.status(404).send({ message: 'Job not found' });
@@ -175,9 +184,13 @@ const getJobById = async (req, res) => {
 const deleteJob = async (req, res) => {
 	try {
 		const userId = req.user.id;
+		const userRole = req.user.role;
 		const { jobId } = req.params;
 
-		const job = await jobModel.findOne({ _id: jobId, userId });
+		// Build query - admins can delete any job, clients only their own
+		const query = userRole === roles.ADMIN ? { _id: jobId } : { _id: jobId, userId };
+
+		const job = await jobModel.findOne(query);
 
 		if (!job) {
 			return res.status(404).send({ message: 'Job not found' });
@@ -217,10 +230,11 @@ const deleteJob = async (req, res) => {
 const getExecutions = async (req, res) => {
 	try {
 		const userId = req.user.id;
+		const userRole = req.user.role;
 		const { jobId, executionStatus, type, limit = 50, skip = 0 } = req.query;
 
-		// Build query
-		const query = { userId };
+		// Build query - admins can see all executions, clients only see their own
+		const query = userRole === roles.ADMIN ? {} : { userId };
 		if (jobId) {
 			query.jobId = jobId;
 		}
@@ -238,7 +252,8 @@ const getExecutions = async (req, res) => {
 			.limit(parseInt(limit))
 			.skip(parseInt(skip))
 			.select('-__v')
-			.populate('jobId', 'jobType payload schedule');
+			.populate('jobId', 'jobType payload schedule')
+			.populate('userId', 'name email'); // Populate user info for admin view
 
 		const total = await executionModel.countDocuments(query);
 
@@ -262,12 +277,15 @@ const getExecutions = async (req, res) => {
 const getExecutionById = async (req, res) => {
 	try {
 		const userId = req.user.id;
+		const userRole = req.user.role;
 		const { executionId } = req.params;
 
+		const query = userRole === roles.ADMIN ? { _id: executionId } : { _id: executionId, userId };
 		const execution = await executionModel
-			.findOne({ _id: executionId, userId })
+			.findOne(query)
 			.select('-__v')
-			.populate('jobId', 'jobType payload schedule');
+			.populate('jobId', 'jobType payload schedule')
+			.populate('userId', 'name email');
 
 		if (!execution) {
 			return res.status(404).send({ message: 'Execution not found' });
@@ -285,11 +303,15 @@ const getExecutionById = async (req, res) => {
 const getJobPrices = async (req, res) => {
 	try {
 		const userId = req.user.id;
+		const userRole = req.user.role;
 		const { jobId } = req.params;
 		const { limit = 100, skip = 0 } = req.query;
 
-		// Use discriminator model to verify job exists, belongs to user, and is STORE_PRICES type
-		const job = await storePricesJobModel.findOne({ _id: jobId, userId });
+		// Build query - admins can view any job, clients only their own
+		const jobQuery = userRole === roles.ADMIN ? { _id: jobId } : { _id: jobId, userId };
+
+		// Use discriminator model to verify job exists and is STORE_PRICES type
+		const job = await storePricesJobModel.findOne(jobQuery);
 
 		if (!job) {
 			return res.status(404).send({ 
@@ -297,16 +319,19 @@ const getJobPrices = async (req, res) => {
 			});
 		}
 
+		// Build executions query - admins can view all executions for the job, clients only their own
+		const execQuery = userRole === roles.ADMIN ? { jobId } : { jobId, userId };
+
 		// Fetch storage executions for this job
 		const prices = await storageExecutionModel
-			.find({ jobId, userId })
+			.find(execQuery)
 			.select('symbol price currency fetchedAt executionStatus error attempt')
 			.sort({ fetchedAt: -1 }) // Most recent first
 			.limit(parseInt(limit))
 			.skip(parseInt(skip));
 
 		// Get total count for pagination
-		const total = await storageExecutionModel.countDocuments({ jobId, userId });
+		const total = await storageExecutionModel.countDocuments(execQuery);
 
 		res.status(200).send({
 			prices,
@@ -328,11 +353,15 @@ const getJobPrices = async (req, res) => {
 const getJobEmails = async (req, res) => {
 	try {
 		const userId = req.user.id;
+		const userRole = req.user.role;
 		const { jobId } = req.params;
 		const { limit = 100, skip = 0 } = req.query;
 
-		// First verify the job exists and belongs to the user
-		const job = await jobModel.findOne({ _id: jobId, userId });
+		// Build query - admins can view any job, clients only their own
+		const jobQuery = userRole === roles.ADMIN ? { _id: jobId } : { _id: jobId, userId };
+
+		// First verify the job exists
+		const job = await jobModel.findOne(jobQuery);
 
 		if (!job) {
 			return res.status(404).send({ message: 'Job not found' });
@@ -345,16 +374,19 @@ const getJobEmails = async (req, res) => {
 			});
 		}
 
+		// Build executions query - admins can view all executions for the job, clients only their own
+		const execQuery = userRole === roles.ADMIN ? { jobId } : { jobId, userId };
+
 		// Fetch email executions for this job
 		const emails = await emailExecutionModel
-			.find({ jobId, userId })
+			.find(execQuery)
 			.select('emailType to subject executionStatus error attempt metadata createdAt')
 			.sort({ createdAt: -1 }) // Most recent first
 			.limit(parseInt(limit))
 			.skip(parseInt(skip));
 
 		// Get total count for pagination
-		const total = await emailExecutionModel.countDocuments({ jobId, userId });
+		const total = await emailExecutionModel.countDocuments(execQuery);
 
 		res.status(200).send({
 			emails,

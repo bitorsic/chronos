@@ -1,14 +1,16 @@
 const { emailExecutionModel } = require('../models/executionModel');
 const { handleError } = require('../utils/errorHandler');
+const { roles } = require('../utils/constants');
 
 // Get email executions for the authenticated user
 const getEmails = async (req, res) => {
 	try {
 		const userId = req.user.id;
+		const userRole = req.user.role;
 		const { emailType, executionStatus, from, to, limit = 100, skip = 0 } = req.query;
 
-		// Build query filter
-		const filter = { userId };
+		// Build query filter - admins can see all emails, clients only see their own
+		const filter = userRole === roles.ADMIN ? {} : { userId };
 
 		// Add emailType filter if provided
 		if (emailType) {
@@ -36,6 +38,7 @@ const getEmails = async (req, res) => {
 			.find(filter)
 			.select('emailType to subject executionStatus error attempt metadata createdAt')
 			.populate('jobId', 'jobType schedule')
+			.populate('userId', 'name email') // Populate user info for admin view
 			.sort({ createdAt: -1 }) // Most recent first
 			.limit(parseInt(limit))
 			.skip(parseInt(skip));

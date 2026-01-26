@@ -8,10 +8,15 @@ export interface Email {
   attempt: number;
   metadata?: Array<{
     symbol: string;
-    price: number;
-    currency: string;
+    price?: number; // Optional for failed fetches
+    currency?: string; // Optional for failed fetches
   }>;
   createdAt: string;
+  userId?: {
+    _id: string;
+    name: string;
+    email: string;
+  };
   jobId?: {
     _id: string;
     jobType: string;

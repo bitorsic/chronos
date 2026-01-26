@@ -1,5 +1,6 @@
 const path = require('path');
 const mongoose = require('mongoose');
+const bcrypt = require('bcrypt');
 
 // Load environment variables
 const dotenv = require('dotenv');
@@ -63,17 +64,51 @@ const createDummyData = async () => {
 		await mongoose.connect(process.env.DB_URL);
 		console.log('[+] Connected to MongoDB');
 
-		// Find existing users
-		const client = await userModel.findOne({ email: 'bitorsic@gmail.com' });
-		const admin = await userModel.findOne({ email: 'yashjaiswal.cse@gmail.com' });
-
-		if (!client || !admin) {
-			console.error('[-] Required users not found. Please ensure both users exist.');
-			process.exit(1);
+		// Find or create admin user
+		let admin = await userModel.findOne({ email: 'yashjaiswal.cse@gmail.com' });
+		if (!admin) {
+			console.log('[+] Admin user not found, creating...');
+			const hashedPassword = await bcrypt.hash('admin123', 10);
+			admin = await userModel.create({
+				name: 'Yash Jaiswal',
+				email: 'yashjaiswal.cse@gmail.com',
+				password: hashedPassword,
+				role: 'admin',
+			});
+			console.log('[+] Created admin user');
+		} else {
+			console.log('[+] Found admin:', admin.email);
 		}
 
-		console.log('[+] Found client:', client.email);
-		console.log('[+] Found admin:', admin.email);
+		// Create dummy client users
+		console.log('[+] Creating dummy client users...');
+		const dummyClients = [
+			{ name: 'Alice Johnson', email: 'alice.johnson@example.com', password: 'client123' },
+			{ name: 'Bob Smith', email: 'bob.smith@example.com', password: 'client123' },
+			{ name: 'Charlie Brown', email: 'charlie.brown@example.com', password: 'client123' },
+			{ name: 'Diana Prince', email: 'diana.prince@example.com', password: 'client123' },
+			{ name: 'Ethan Hunt', email: 'ethan.hunt@example.com', password: 'client123' },
+		];
+
+		// Delete existing dummy clients (to avoid duplicates)
+		await userModel.deleteMany({ 
+			email: { $in: dummyClients.map(c => c.email) } 
+		});
+
+		const clients = [];
+		for (const clientData of dummyClients) {
+			const hashedPassword = await bcrypt.hash(clientData.password, 10);
+			const client = await userModel.create({
+				name: clientData.name,
+				email: clientData.email,
+				password: hashedPassword,
+				role: 'client',
+			});
+			clients.push(client);
+			console.log(`[+] Created client: ${client.email}`);
+		}
+
+		console.log(`[+] Created ${clients.length} client users`);
 
 		// Clear existing dummy data (optional)
 		console.log('[+] Clearing existing job and execution data...');
@@ -88,117 +123,93 @@ const createDummyData = async () => {
 		const createdExecutions = [];
 
 		// ========================================
-		// CREATE EMAIL REMINDER JOBS (Client)
+		// CREATE EMAIL REMINDER JOBS (Distributed across clients)
 		// ========================================
 		console.log('\n[+] Creating Email Reminder jobs...');
 		
-		// Immediate email reminder (completed)
-		const immediateReminder = await emailReminderJobModel.create({
-			userId: client._id,
-			schedule: {
-				type: scheduleTypes.IMMEDIATE,
-			},
-			payload: {
-				to: client.email,
-				subject: 'Welcome to Chronos!',
-				body: 'Your account has been set up successfully. This is a test immediate reminder.',
-			},
-			lastRunStatus: progressStatuses.SUCCESS,
-			createdAt: getRandomPastDate(7),
-		});
-		createdJobs.push(immediateReminder);
-
-		// Once scheduled reminder (future)
-		const onceReminder = await emailReminderJobModel.create({
-			userId: client._id,
-			schedule: {
-				type: scheduleTypes.ONCE,
-				timestamp: getRandomFutureDate(5),
-			},
-			payload: {
-				to: client.email,
-				subject: reminderSubjects[Math.floor(Math.random() * reminderSubjects.length)],
-				body: 'This is a one-time scheduled reminder for an upcoming event.',
-			},
-			createdAt: getRandomPastDate(3),
-		});
-		createdJobs.push(onceReminder);
-
-		// Recurring cron reminders
-		for (let i = 0; i < 5; i++) {
-			const cronReminder = await emailReminderJobModel.create({
-				userId: client._id,
-				schedule: {
-					type: scheduleTypes.CRON,
-					cronExpression: cronExpressions[i],
-				},
-				payload: {
-					to: client.email,
-					subject: reminderSubjects[i],
-					body: `Recurring reminder: ${reminderSubjects[i]}. This runs on schedule: ${cronExpressions[i]}`,
-				},
-				lastRunStatus: Math.random() > 0.3 ? progressStatuses.SUCCESS : progressStatuses.FAILED,
-				createdAt: getRandomPastDate(15),
-			});
-			createdJobs.push(cronReminder);
+		// Create 2-3 reminder jobs per client
+		for (const client of clients) {
+			const numReminders = Math.floor(Math.random() * 2) + 2; // 2-3 jobs
+			
+			for (let i = 0; i < numReminders; i++) {
+				const scheduleType = [scheduleTypes.IMMEDIATE, scheduleTypes.ONCE, scheduleTypes.CRON][Math.floor(Math.random() * 3)];
+				const scheduleConfig = {};
+				
+				if (scheduleType === scheduleTypes.ONCE) {
+					scheduleConfig.timestamp = getRandomFutureDate(5);
+				} else if (scheduleType === scheduleTypes.CRON) {
+					scheduleConfig.cronExpression = cronExpressions[Math.floor(Math.random() * cronExpressions.length)];
+				}
+				
+				const reminder = await emailReminderJobModel.create({
+					userId: client._id,
+					schedule: {
+						type: scheduleType,
+						...scheduleConfig,
+					},
+					payload: {
+						to: client.email,
+						subject: reminderSubjects[Math.floor(Math.random() * reminderSubjects.length)],
+						body: `Reminder for ${client.email}: ${reminderSubjects[Math.floor(Math.random() * reminderSubjects.length)]}`,
+					},
+					lastRunStatus: scheduleType === scheduleTypes.IMMEDIATE ? progressStatuses.SUCCESS : (Math.random() > 0.3 ? progressStatuses.SUCCESS : progressStatuses.FAILED),
+					createdAt: getRandomPastDate(15),
+				});
+				createdJobs.push(reminder);
+			}
 		}
 
 		console.log(`[+] Created ${createdJobs.length} Email Reminder jobs`);
 
 		// ========================================
-		// CREATE EMAIL PRICES JOBS (Client)
+		// CREATE EMAIL PRICES JOBS (Distributed across clients)
 		// ========================================
 		console.log('\n[+] Creating Email Prices jobs...');
+		const emailPricesStartCount = createdJobs.length;
 
-		// Daily stock prices email
-		const dailyPrices = await emailPricesJobModel.create({
-			userId: client._id,
-			schedule: {
-				type: scheduleTypes.CRON,
-				cronExpression: '0 16 * * 1-5', // Weekdays at 4 PM (after market close)
-			},
-			payload: {
-				to: client.email,
-				symbols: ['AAPL', 'GOOGL', 'MSFT'],
-			},
-			lastRunStatus: progressStatuses.SUCCESS,
-			createdAt: getRandomPastDate(20),
-		});
-		createdJobs.push(dailyPrices);
+		// Create 1-3 price email jobs per client
+		for (const client of clients) {
+			const numPriceJobs = Math.floor(Math.random() * 3) + 1; // 1-3 jobs
+			
+			for (let i = 0; i < numPriceJobs; i++) {
+				// Random symbols (2-4 stocks)
+				const numSymbols = Math.floor(Math.random() * 3) + 2;
+				const selectedSymbols = [];
+				const availableSymbols = [...stockSymbols];
+				
+				for (let j = 0; j < numSymbols; j++) {
+					const idx = Math.floor(Math.random() * availableSymbols.length);
+					selectedSymbols.push(availableSymbols.splice(idx, 1)[0]);
+				}
+				
+				const scheduleType = [scheduleTypes.IMMEDIATE, scheduleTypes.ONCE, scheduleTypes.CRON][Math.floor(Math.random() * 3)];
+				const scheduleConfig = {};
+				
+				if (scheduleType === scheduleTypes.ONCE) {
+					scheduleConfig.timestamp = getRandomFutureDate(5);
+				} else if (scheduleType === scheduleTypes.CRON) {
+					scheduleConfig.cronExpression = cronExpressions[Math.floor(Math.random() * cronExpressions.length)];
+				}
+				
+				const priceJob = await emailPricesJobModel.create({
+					userId: client._id,
+					schedule: {
+						type: scheduleType,
+						...scheduleConfig,
+					},
+					payload: {
+						to: client.email,
+						symbols: selectedSymbols,
+					},
+					lastRunStatus: scheduleType === scheduleTypes.IMMEDIATE ? progressStatuses.SUCCESS : (Math.random() > 0.2 ? progressStatuses.SUCCESS : progressStatuses.FAILED),
+					createdAt: getRandomPastDate(30),
+				});
+				createdJobs.push(priceJob);
+			}
+		}
 
-		// Weekly portfolio update
-		const weeklyPrices = await emailPricesJobModel.create({
-			userId: client._id,
-			schedule: {
-				type: scheduleTypes.CRON,
-				cronExpression: '0 9 * * 1', // Monday at 9 AM
-			},
-			payload: {
-				to: client.email,
-				symbols: ['TSLA', 'AMZN', 'META', 'NFLX'],
-			},
-			lastRunStatus: progressStatuses.SUCCESS,
-			createdAt: getRandomPastDate(30),
-		});
-		createdJobs.push(weeklyPrices);
-
-		// One-time price check
-		const oncePrices = await emailPricesJobModel.create({
-			userId: client._id,
-			schedule: {
-				type: scheduleTypes.IMMEDIATE,
-			},
-			payload: {
-				to: client.email,
-				symbols: ['NVDA', 'AMD'],
-			},
-			lastRunStatus: progressStatuses.SUCCESS,
-			createdAt: getRandomPastDate(2),
-		});
-		createdJobs.push(oncePrices);
-
-		// Additional email price jobs for variety
-		const extraPrices1 = await emailPricesJobModel.create({
+		// Admin also gets a few monitoring jobs
+		const adminPriceJob = await emailPricesJobModel.create({
 			userId: admin._id,
 			schedule: {
 				type: scheduleTypes.CRON,
@@ -211,50 +222,44 @@ const createDummyData = async () => {
 			lastRunStatus: progressStatuses.SUCCESS,
 			createdAt: getRandomPastDate(45),
 		});
-		createdJobs.push(extraPrices1);
+		createdJobs.push(adminPriceJob);
 
-		const extraPrices2 = await emailPricesJobModel.create({
-			userId: client._id,
-			schedule: {
-				type: scheduleTypes.ONCE,
-				timestamp: getRandomFutureDate(3),
-			},
-			payload: {
-				to: client.email,
-				symbols: ['CRM', 'ADBE'],
-			},
-			createdAt: getRandomPastDate(1),
-		});
-		createdJobs.push(extraPrices2);
-
-		console.log(`[+] Created ${createdJobs.length - 7} Email Prices jobs`);
+		console.log(`[+] Created ${createdJobs.length - emailPricesStartCount} Email Prices jobs`);
 
 		// ========================================
-		// CREATE STORE PRICES JOBS (Client & Admin)
+		// CREATE STORE PRICES JOBS (Distributed across clients & Admin)
 		// ========================================
 		console.log('\n[+] Creating Store Prices jobs...');
+		const storePricesStartCount = createdJobs.length;
 
-		// Client's stock tracking jobs
-		for (let i = 0; i < 6; i++) {
-			const symbol = stockSymbols[i];
-			const storeJob = await storePricesJobModel.create({
-				userId: client._id,
-				schedule: {
-					type: scheduleTypes.CRON,
-					cronExpression: '0 */4 * * *', // Every 4 hours
-				},
-				payload: {
-					symbol: symbol,
-				},
-				lastRunStatus: Math.random() > 0.2 ? progressStatuses.SUCCESS : progressStatuses.FAILED,
-				createdAt: getRandomPastDate(25),
-			});
-			createdJobs.push(storeJob);
+		// Each client tracks 2-4 stocks
+		let symbolIndex = 0;
+		for (const client of clients) {
+			const numStocks = Math.floor(Math.random() * 3) + 2; // 2-4 stocks
+			
+			for (let i = 0; i < numStocks; i++) {
+				if (symbolIndex >= stockSymbols.length) symbolIndex = 0;
+				const symbol = stockSymbols[symbolIndex++];
+				
+				const storeJob = await storePricesJobModel.create({
+					userId: client._id,
+					schedule: {
+						type: scheduleTypes.CRON,
+						cronExpression: '0 */4 * * *', // Every 4 hours
+					},
+					payload: {
+						symbol: symbol,
+					},
+					lastRunStatus: Math.random() > 0.2 ? progressStatuses.SUCCESS : progressStatuses.FAILED,
+					createdAt: getRandomPastDate(25),
+				});
+				createdJobs.push(storeJob);
+			}
 		}
 
-		// Admin's monitoring jobs
-		for (let i = 6; i < 12; i++) {
-			const symbol = stockSymbols[i];
+		// Admin monitors several key stocks
+		const adminStocks = ['AAPL', 'GOOGL', 'MSFT', 'AMZN', 'TSLA'];
+		for (const symbol of adminStocks) {
 			const storeJob = await storePricesJobModel.create({
 				userId: admin._id,
 				schedule: {
@@ -270,7 +275,7 @@ const createDummyData = async () => {
 			createdJobs.push(storeJob);
 		}
 
-		console.log(`[+] Created ${createdJobs.length - 13} Store Prices jobs`);
+		console.log(`[+] Created ${createdJobs.length - storePricesStartCount} Store Prices jobs`);
 		console.log(`[+] Total jobs created: ${createdJobs.length}`);
 
 		// ========================================
@@ -307,11 +312,21 @@ const createDummyData = async () => {
 				
 				// Only add metadata for PRICES emails
 				if (job.jobType === jobTypes.EMAIL_PRICES) {
-					executionData.metadata = job.payload.symbols.map(symbol => ({
-						symbol: symbol,
-						price: parseFloat((50 + Math.random() * 450).toFixed(2)),
-						currency: 'USD',
-					}));
+					// For failed emails, some prices might be null
+					if (isSuccess) {
+						executionData.metadata = job.payload.symbols.map(symbol => ({
+							symbol: symbol,
+							price: parseFloat((50 + Math.random() * 450).toFixed(2)),
+							currency: 'USD',
+						}));
+					} else {
+						// Failed emails might have partial data
+						executionData.metadata = job.payload.symbols.map(symbol => ({
+							symbol: symbol,
+							price: Math.random() > 0.5 ? parseFloat((50 + Math.random() * 450).toFixed(2)) : undefined,
+							currency: Math.random() > 0.5 ? 'USD' : undefined,
+						}));
+					}
 				}
 				
 				const execution = await emailExecutionModel.create(executionData);
@@ -337,26 +352,26 @@ const createDummyData = async () => {
 				const isSuccess = Math.random() > 0.1; // 90% success rate
 				const fetchedAt = getRandomPastDate(30);
 				
-				// Generate realistic stock price (between $50 and $500)
-				const basePrice = 100 + Math.random() * 400;
-				const price = parseFloat(basePrice.toFixed(2));
+				const executionData = {
+					jobId: job._id,
+					userId: job.userId,
+					symbol: symbol,
+					fetchedAt: fetchedAt,
+					executionStatus: isSuccess ? progressStatuses.SUCCESS : progressStatuses.FAILED,
+					error: isSuccess ? null : 'API rate limit exceeded',
+					attempt: isSuccess ? 1 : Math.floor(Math.random() * 3) + 1,
+					createdAt: fetchedAt,
+				};
 				
-				// Only create successful executions since price is required
+				// Only add price and currency for successful executions
 				if (isSuccess) {
-					const execution = await storageExecutionModel.create({
-						jobId: job._id,
-						userId: job.userId,
-						symbol: symbol,
-						price: price,
-						currency: 'USD',
-						fetchedAt: fetchedAt,
-						executionStatus: progressStatuses.SUCCESS,
-						error: null,
-						attempt: 1,
-						createdAt: fetchedAt,
-					});
-					createdExecutions.push(execution);
+					const basePrice = 100 + Math.random() * 400;
+					executionData.price = parseFloat(basePrice.toFixed(2));
+					executionData.currency = 'USD';
 				}
+				
+				const execution = await storageExecutionModel.create(executionData);
+				createdExecutions.push(execution);
 			}
 		}
 
@@ -369,6 +384,8 @@ const createDummyData = async () => {
 		console.log('\n========================================');
 		console.log('DUMMY DATA CREATION SUMMARY');
 		console.log('========================================');
+		console.log(`Users Created: ${clients.length} clients + 1 admin`);
+		console.log('----------------------------------------');
 		console.log(`Email Reminder Jobs: ${createdJobs.filter(j => j.jobType === jobTypes.EMAIL_REMINDER).length}`);
 		console.log(`Email Prices Jobs: ${createdJobs.filter(j => j.jobType === jobTypes.EMAIL_PRICES).length}`);
 		console.log(`Store Prices Jobs: ${createdJobs.filter(j => j.jobType === jobTypes.STORE_PRICES).length}`);
@@ -380,7 +397,19 @@ const createDummyData = async () => {
 		console.log('----------------------------------------');
 		console.log(`Success Rate: ${((createdExecutions.filter(e => e.executionStatus === progressStatuses.SUCCESS).length / createdExecutions.length) * 100).toFixed(1)}%`);
 		console.log('========================================');
+		
+		// Show distribution per client
+		console.log('\nJobs per User:');
+		for (const client of clients) {
+			const userJobs = createdJobs.filter(j => j.userId.equals(client._id));
+			console.log(`  ${client.email}: ${userJobs.length} jobs`);
+		}
+		const adminJobs = createdJobs.filter(j => j.userId.equals(admin._id));
+		console.log(`  ${admin.email}: ${adminJobs.length} jobs`);
+		console.log('========================================');
 		console.log('\n[+] Dummy data created successfully!');
+		console.log('[+] All client passwords: client123');
+		console.log('[+] Admin password: admin123');
 
 		process.exit(0);
 	} catch (error) {

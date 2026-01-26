@@ -38,11 +38,9 @@ const storageExecutionModel = executionModel.discriminator(executionTypes.STORAG
 	},
 	price: {
 		type: Number,
-		required: [true, 'price is required for storage execution'],
 	},
 	currency: {
 		type: String,
-		required: [true, 'currency is required for storage execution'],
 	},
 	fetchedAt: {
 		type: Date,

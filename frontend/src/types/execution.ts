@@ -7,7 +7,11 @@ export type ExecutionStatus = typeof ExecutionStatus[keyof typeof ExecutionStatu
 
 export interface BaseExecution {
   _id: string;
-  userId: string;
+  userId: string | {
+    _id: string;
+    name: string;
+    email: string;
+  };
   jobId: {
     _id: string;
     jobType: string;
@@ -25,8 +29,8 @@ export interface BaseExecution {
 export interface StorageExecution extends BaseExecution {
   type: 'storage';
   symbol: string;
-  price: number;
-  currency: string;
+  price?: number; // Optional for failed executions
+  currency?: string; // Optional for failed executions
   fetchedAt: string;
 }
 
@@ -37,8 +41,8 @@ export interface EmailExecution extends BaseExecution {
   subject: string;
   metadata?: Array<{
     symbol: string;
-    price: number;
-    currency: string;
+    price?: number; // Optional for failed fetches
+    currency?: string; // Optional for failed fetches
   }>;
 }
 

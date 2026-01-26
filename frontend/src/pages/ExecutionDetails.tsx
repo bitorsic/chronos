@@ -131,8 +131,12 @@ export default function ExecutionDetails() {
                 </dd>
               </div>
               <div>
-                <dt className="text-sm font-medium text-gray-500">User ID</dt>
-                <dd className="text-sm text-gray-900 mt-1 font-mono">{execution.userId}</dd>
+                <dt className="text-sm font-medium text-gray-500">User</dt>
+                <dd className="text-sm text-gray-900 mt-1">
+                  {typeof execution.userId === 'string' 
+                    ? execution.userId 
+                    : `${execution.userId.name} (${execution.userId.email})`}
+                </dd>
               </div>
             </dl>
           </Card>
@@ -143,13 +147,13 @@ export default function ExecutionDetails() {
               <dl className="space-y-3">
                 <div>
                   <dt className="text-sm font-medium text-gray-500">Job Type</dt>
-                  <dd className="text-sm text-gray-900 mt-1">{job.jobType.replace(/_/g, ' ')}</dd>
+                  <dd className="text-sm text-gray-900 mt-1">{job.jobType?.replace(/_/g, ' ') || 'N/A'}</dd>
                 </div>
                 <div>
                   <dt className="text-sm font-medium text-gray-500">Schedule Type</dt>
-                  <dd className="text-sm text-gray-900 mt-1">{job.schedule.scheduleType}</dd>
+                  <dd className="text-sm text-gray-900 mt-1">{job.schedule?.scheduleType || 'N/A'}</dd>
                 </div>
-                {job.schedule.cronExpression && (
+                {job.schedule?.cronExpression && (
                   <div>
                     <dt className="text-sm font-medium text-gray-500">Cron Expression</dt>
                     <dd className="text-sm text-gray-900 mt-1 font-mono bg-gray-100 px-2 py-1 rounded">
@@ -167,13 +171,13 @@ export default function ExecutionDetails() {
                     </dd>
                   </div>
                 )}
-                {job.payload.subject && (
+                {job.payload?.subject && (
                   <div>
                     <dt className="text-sm font-medium text-gray-500">Subject</dt>
                     <dd className="text-sm text-gray-900 mt-1">{job.payload.subject}</dd>
                   </div>
                 )}
-                {job.payload.symbols && job.payload.symbols.length > 0 && (
+                {job.payload?.symbols && job.payload.symbols.length > 0 && (
                   <div>
                     <dt className="text-sm font-medium text-gray-500 mb-2">Stock Symbols</dt>
                     <dd className="flex flex-wrap gap-2">
@@ -185,7 +189,7 @@ export default function ExecutionDetails() {
                     </dd>
                   </div>
                 )}
-                {job.payload.symbol && (
+                {job.payload?.symbol && (
                   <div>
                     <dt className="text-sm font-medium text-gray-500">Stock Symbol</dt>
                     <dd className="text-sm text-gray-900 mt-1">
@@ -232,6 +236,36 @@ export default function ExecutionDetails() {
           </Card>
         )}
 
+        {/* Storage Execution Details */}
+        {execution.type === 'storage' && (
+          <Card title="Price Data">
+            <dl className="space-y-3">
+              <div>
+                <dt className="text-sm font-medium text-gray-500">Symbol</dt>
+                <dd className="mt-1">
+                  <Badge variant="info">{execution.symbol}</Badge>
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-gray-500">Price</dt>
+                <dd className="text-sm text-gray-900 mt-1">
+                  {execution.price != null ? `$${execution.price.toFixed(2)}` : 'N/A'}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-gray-500">Currency</dt>
+                <dd className="text-sm text-gray-900 mt-1">{execution.currency || 'N/A'}</dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-gray-500">Fetched At</dt>
+                <dd className="text-sm text-gray-900 mt-1">
+                  {format(new Date(execution.fetchedAt), 'MMMM d, yyyy HH:mm:ss')}
+                </dd>
+              </div>
+            </dl>
+          </Card>
+        )}
+
         {/* Metadata */}
         {execution.type === 'email' && execution.metadata && execution.metadata.length > 0 && (
           <Card title="Price Metadata">
@@ -248,8 +282,10 @@ export default function ExecutionDetails() {
                   {execution.metadata.map((item, index) => (
                     <tr key={index}>
                       <td className="px-4 py-2 text-sm">{item.symbol}</td>
-                      <td className="px-4 py-2 text-sm">{item.price.toFixed(2)}</td>
-                      <td className="px-4 py-2 text-sm">{item.currency}</td>
+                      <td className="px-4 py-2 text-sm">
+                        {item.price != null ? item.price.toFixed(2) : 'N/A'}
+                      </td>
+                      <td className="px-4 py-2 text-sm">{item.currency || 'N/A'}</td>
                     </tr>
                   ))}
                 </tbody>

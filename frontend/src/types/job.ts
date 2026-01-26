@@ -35,7 +35,11 @@ export interface JobData {
 
 export interface Job {
   _id: string;
-  userId: string;
+  userId: string | {
+    _id: string;
+    name: string;
+    email: string;
+  };
   jobType: JobType;
   schedule: Schedule;
   payload: JobData;

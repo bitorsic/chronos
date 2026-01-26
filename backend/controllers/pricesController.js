@@ -1,16 +1,17 @@
 const { storageExecutionModel } = require('../models/executionModel');
 const { handleError } = require('../utils/errorHandler');
-const { progressStatuses } = require('../utils/constants');
+const { progressStatuses, roles } = require('../utils/constants');
 
 // Get stored prices for the authenticated user
 const getPrices = async (req, res) => {
 	try {
 		const userId = req.user.id;
+		const userRole = req.user.role;
 		const { symbol, from, to, limit = 100, skip = 0 } = req.query;
 
-		// Build query filter
+		// Build query filter - admins can see all prices, clients only see their own
 		const filter = {
-			userId,
+			...(userRole === roles.ADMIN ? {} : { userId }),
 			executionStatus: progressStatuses.SUCCESS, // Only return successful executions
 		};
 
@@ -34,6 +35,7 @@ const getPrices = async (req, res) => {
 		const prices = await storageExecutionModel
 			.find(filter)
 			.select('symbol price currency fetchedAt')
+			.populate('userId', 'name email') // Populate user info for admin view
 			.sort({ fetchedAt: -1 }) // Most recent first
 			.limit(parseInt(limit))
 			.skip(parseInt(skip));
