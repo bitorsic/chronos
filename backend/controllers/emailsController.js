@@ -33,17 +33,15 @@ const getEmails = async (req, res) => {
 			}
 		}
 
-		// Fetch email executions with pagination
-		const emails = await emailExecutionModel
-			.find(filter)
-			.select('emailType to subject executionStatus error attempt metadata createdAt')
-			.populate('jobId', 'jobType schedule')
-			.populate('userId', 'name email') // Populate user info for admin view
-			.sort({ createdAt: -1 }) // Most recent first
-			.limit(parseInt(limit))
-			.skip(parseInt(skip));
-
-		// Get total count for pagination
+	// Fetch email executions with pagination
+	const emails = await emailExecutionModel
+		.find(filter)
+		.select('emailType to subject executionStatus error attempt metadata createdAt updatedAt')
+		.populate('jobId', 'jobType schedule')
+		.populate('userId', 'name email') // Populate user info for admin view
+		.sort({ createdAt: -1 }) // Most recent first
+		.limit(parseInt(limit))
+		.skip(parseInt(skip));		// Get total count for pagination
 		const total = await emailExecutionModel.countDocuments(filter);
 
 		res.status(200).send({

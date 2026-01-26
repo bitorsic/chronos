@@ -31,16 +31,14 @@ const getPrices = async (req, res) => {
 			}
 		}
 
-		// Fetch prices with pagination
-		const prices = await storageExecutionModel
-			.find(filter)
-			.select('symbol price currency fetchedAt')
-			.populate('userId', 'name email') // Populate user info for admin view
-			.sort({ fetchedAt: -1 }) // Most recent first
-			.limit(parseInt(limit))
-			.skip(parseInt(skip));
-
-		// Get total count for pagination
+	// Fetch prices with pagination
+	const prices = await storageExecutionModel
+		.find(filter)
+		.select('symbol price currency fetchedAt createdAt updatedAt')
+		.populate('userId', 'name email') // Populate user info for admin view
+		.sort({ fetchedAt: -1 }) // Most recent first
+		.limit(parseInt(limit))
+		.skip(parseInt(skip));		// Get total count for pagination
 		const total = await storageExecutionModel.countDocuments(filter);
 
 		res.status(200).send({

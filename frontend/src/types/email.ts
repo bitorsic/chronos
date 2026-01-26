@@ -12,6 +12,7 @@ export interface Email {
     currency?: string; // Optional for failed fetches
   }>;
   createdAt: string;
+  updatedAt?: string;
   userId?: {
     _id: string;
     name: string;

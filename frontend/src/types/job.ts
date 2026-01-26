@@ -46,6 +46,8 @@ export interface Job {
   nextRunAt?: string;
   lastRunAt?: string;
   lastRunStatus?: 'success' | 'failed';
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface CreateJobDto {

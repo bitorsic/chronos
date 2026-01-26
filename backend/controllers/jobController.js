@@ -27,13 +27,7 @@ const createEmailReminderJob = async (req, res) => {
 
 		res.status(201).send({
 			message: 'Email reminder job created successfully',
-			job: {
-				id: job._id,
-				userId: job.userId,
-				jobType: job.jobType,
-				schedule: job.schedule,
-				payload: job.payload,
-			},
+			job: job.toObject(),
 		});
 	} catch (err) {
 		console.error(err);
@@ -63,13 +57,7 @@ const createEmailPricesJob = async (req, res) => {
 
 		res.status(201).send({
 			message: 'Email prices job created successfully',
-			job: {
-				id: job._id,
-				userId: job.userId,
-				jobType: job.jobType,
-				schedule: job.schedule,
-				payload: job.payload,
-			},
+			job: job.toObject(),
 		});
 	} catch (err) {
 		console.error(err);
@@ -98,13 +86,7 @@ const createStorePricesJob = async (req, res) => {
 
 		res.status(201).send({
 			message: 'Store prices job created successfully',
-			job: {
-				id: job._id,
-				userId: job.userId,
-				jobType: job.jobType,
-				schedule: job.schedule,
-				payload: job.payload,
-			},
+			job: job.toObject(),
 		});
 	} catch (err) {
 		console.error(err);
@@ -325,7 +307,7 @@ const getJobPrices = async (req, res) => {
 		// Fetch storage executions for this job
 		const prices = await storageExecutionModel
 			.find(execQuery)
-			.select('symbol price currency fetchedAt executionStatus error attempt')
+			.select('symbol price currency fetchedAt executionStatus error attempt createdAt updatedAt')
 			.sort({ fetchedAt: -1 }) // Most recent first
 			.limit(parseInt(limit))
 			.skip(parseInt(skip));
@@ -380,7 +362,7 @@ const getJobEmails = async (req, res) => {
 		// Fetch email executions for this job
 		const emails = await emailExecutionModel
 			.find(execQuery)
-			.select('emailType to subject executionStatus error attempt metadata createdAt')
+			.select('emailType to subject executionStatus error attempt metadata createdAt updatedAt')
 			.sort({ createdAt: -1 }) // Most recent first
 			.limit(parseInt(limit))
 			.skip(parseInt(skip));

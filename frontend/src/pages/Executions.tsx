@@ -151,10 +151,12 @@ export default function Executions() {
                           <div className="flex items-center">
                             <div>
                               <p className="text-sm font-medium text-gray-900">
-                                {execution.jobId.jobType.replace(/([A-Z])/g, ' $1').trim()}
+                                {typeof execution.jobId === 'object' && execution.jobId && 'jobType' in execution.jobId
+                                  ? (execution.jobId.jobType as string).replace(/([A-Z])/g, ' $1').trim()
+                                  : 'N/A'}
                               </p>
                               <Link
-                                to={`/jobs/${execution.jobId._id}`}
+                                to={`/jobs/${typeof execution.jobId === 'string' ? execution.jobId : (execution.jobId && (execution.jobId as any)._id) || ''}`}
                                 className="text-xs text-primary hover:text-primary-hover"
                               >
                                 View Job

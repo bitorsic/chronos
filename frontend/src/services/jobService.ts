@@ -16,7 +16,9 @@ interface ExecutionsResponse {
 
 // Backend request structures
 interface EmailReminderPayload {
-  to: string[];
+  // Backend expects a single recipient (string). If the frontend provides an array,
+  // we'll take the first element.
+  to: string;
   subject: string;
   body: string;
   schedule: {
@@ -27,7 +29,8 @@ interface EmailReminderPayload {
 }
 
 interface EmailPricesPayload {
-  to: string[];
+  // Single recipient supported by backend
+  to: string;
   symbols: string[];
   schedule: {
     type: 'immediate' | 'once' | 'cron';
@@ -62,8 +65,9 @@ export const jobService = {
 
   // Get single job by ID
   getJob: async (jobId: string): Promise<Job> => {
-    const response = await api.get<Job>(`/jobs/${jobId}`);
-    return response.data;
+    // Backend returns { job } so return the nested job object
+    const response = await api.get<{ job: Job }>(`/jobs/${jobId}`);
+    return response.data.job;
   },
 
   // Create new job - route to correct endpoint based on type
@@ -74,8 +78,10 @@ export const jobService = {
     // Map to correct endpoint and transform payload based on job type
     if (data.jobType === 'emailReminder') {
       endpoint = '/jobs/email-reminder';
+      // Backend supports only one recipient; prefer first element if array provided
+      const recipient = typeof data.data.to === 'string' ? data.data.to : Array.isArray(data.data.to) ? data.data.to[0] || '' : '';
       payload = {
-        to: data.data.to || [],
+        to: recipient,
         subject: data.data.subject || '',
         body: data.data.body || '',
         schedule: {
@@ -86,8 +92,9 @@ export const jobService = {
       };
     } else if (data.jobType === 'emailPrices') {
       endpoint = '/jobs/email-prices';
+      const recipient = typeof data.data.to === 'string' ? data.data.to : Array.isArray(data.data.to) ? data.data.to[0] || '' : '';
       payload = {
-        to: data.data.to || [],
+        to: recipient,
         symbols: data.data.symbols || [],
         schedule: {
           type: data.schedule.scheduleType,
@@ -108,8 +115,9 @@ export const jobService = {
       };
     }
 
-    const response = await api.post<Job>(endpoint, payload);
-    return response.data;
+    // Backend returns { message, job }
+    const response = await api.post<{ message: string; job: Job }>(endpoint, payload);
+    return response.data.job;
   },
 
   // Update job
@@ -128,11 +136,14 @@ export const jobService = {
     jobId: string,
     params?: { page?: number; limit?: number }
   ): Promise<PaginatedResponse<Execution>> => {
-    const response = await api.get<PaginatedResponse<Execution>>(
-      `/jobs/${jobId}/executions`,
-      { params }
-    );
-    return response.data;
+    const response = await api.get<ExecutionsResponse>('/jobs/executions/all', {
+      params: { ...params, jobId },
+    });
+    // Transform backend response to match PaginatedResponse type
+    return {
+      data: response.data.executions,
+      pagination: response.data.pagination,
+    };
   },
 
   // Get recent executions for all jobs

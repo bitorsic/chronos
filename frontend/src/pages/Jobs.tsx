@@ -181,8 +181,8 @@ export default function Jobs() {
                           </div>
                         </td>
                         <td className="px-4 py-4 text-sm text-gray-600">
-                          {job.schedule.scheduleType}
-                          {job.schedule.cronExpression && (
+                          {job.schedule?.scheduleType || (job.schedule as any)?.type || 'N/A'}
+                          {job.schedule?.cronExpression && (
                             <p className="text-xs text-gray-500 mt-1">
                               {job.schedule.cronExpression}
                             </p>

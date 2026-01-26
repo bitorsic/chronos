@@ -7,6 +7,8 @@ export interface Price {
   executionStatus?: 'success' | 'failed';
   error?: string;
   attempt?: number;
+  createdAt?: string;
+  updatedAt?: string;
   userId?: {
     _id: string;
     name: string;

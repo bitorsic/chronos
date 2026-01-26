@@ -78,9 +78,9 @@ components:
     Job:
       type: object
       properties:
-        id:
+        _id:
           type: string
-          description: Job ID
+          description: Job ID (MongoDB ObjectId)
         userId:
           type: string
           description: ID of the user who created the job
@@ -139,10 +139,9 @@ components:
               type: string
               enum: [REMINDER, PRICES]
             to:
-              type: array
-              items:
-                type: string
-                format: email
+              type: string
+              format: email
+              description: Recipient email address
             subject:
               type: string
             metadata:
@@ -559,12 +558,10 @@ paths:
                 - schedule
               properties:
                 to:
-                  type: array
-                  items:
-                    type: string
-                    format: email
-                  description: Recipient email addresses
-                  example: ["recipient1@example.com", "recipient2@example.com"]
+                  type: string
+                  format: email
+                  description: Recipient email address
+                  example: "recipient1@example.com"
                 subject:
                   type: string
                   description: Email subject
@@ -610,12 +607,10 @@ paths:
                 - schedule
               properties:
                 to:
-                  type: array
-                  items:
-                    type: string
-                    format: email
-                  description: Recipient email addresses
-                  example: ["trader@example.com"]
+                  type: string
+                  format: email
+                  description: Recipient email address
+                  example: "trader@example.com"
                 symbols:
                   type: array
                   items:

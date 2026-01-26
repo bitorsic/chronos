@@ -18,6 +18,10 @@ export const authService = {
   // Login user
   login: async (credentials: LoginCredentials): Promise<AuthResponse> => {
     const response = await api.post<BackendAuthResponse>('/users/login', credentials);
+    // Persist refresh token so we can refresh access tokens when they expire
+    if (response.data.refreshToken) {
+      localStorage.setItem('refreshToken', response.data.refreshToken);
+    }
     // Transform backend response to match frontend types
     return {
       token: response.data.accessToken,
@@ -52,6 +56,7 @@ export const authService = {
   logout: () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    localStorage.removeItem('refreshToken');
   },
 
   // Save auth data to localStorage

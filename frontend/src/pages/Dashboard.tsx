@@ -213,7 +213,9 @@ function ClientDashboard() {
                 {executions.map((execution) => (
                   <tr key={execution._id} className="hover:bg-gray-50">
                     <td className="px-4 py-3 text-sm text-gray-900">
-                      {execution.jobId.jobType.replace(/([A-Z])/g, ' $1').trim()}
+                      {typeof execution.jobId === 'object' && execution.jobId && 'jobType' in execution.jobId && execution.jobId.jobType
+                        ? (execution.jobId.jobType as string).replace(/([A-Z])/g, ' $1').trim()
+                        : 'N/A'}
                     </td>
                     <td className="px-4 py-3">
                       <Badge variant={execution.executionStatus === 'success' ? 'success' : 'error'}>

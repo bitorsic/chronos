@@ -123,7 +123,9 @@ export default function JobDetails() {
               </div>
               <div>
                 <dt className="text-sm font-medium text-gray-500">Schedule Type</dt>
-                <dd className="text-sm text-gray-900 mt-1">{job.schedule.scheduleType}</dd>
+                <dd className="text-sm text-gray-900 mt-1">
+                  {job.schedule?.scheduleType || (job.schedule as any)?.type || 'N/A'}
+                </dd>
               </div>
               {job.schedule.cronExpression && (
                 <div>
@@ -133,11 +135,11 @@ export default function JobDetails() {
                   </dd>
                 </div>
               )}
-              {job.schedule.scheduledAt && (
+              { (job.schedule.scheduledAt || (job.schedule as any)?.timestamp) && (
                 <div>
                   <dt className="text-sm font-medium text-gray-500">Scheduled At</dt>
                   <dd className="text-sm text-gray-900 mt-1">
-                    {format(new Date(job.schedule.scheduledAt), 'MMM d, yyyy HH:mm')}
+                    {format(new Date(job.schedule.scheduledAt || (job.schedule as any).timestamp), 'MMM d, yyyy HH:mm')}
                   </dd>
                 </div>
               )}
@@ -271,22 +273,6 @@ export default function JobDetails() {
               </Link>
             </div>
           )}
-        </Card>
-
-        {/* Quick Actions */}
-        <Card title="Quick Actions">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Link to={`/jobs/${jobId}/prices`}>
-              <Button variant="secondary" className="w-full">
-                View Price History
-              </Button>
-            </Link>
-            <Link to={`/jobs/${jobId}/emails`}>
-              <Button variant="secondary" className="w-full">
-                View Email History
-              </Button>
-            </Link>
-          </div>
         </Card>
       </div>
 
