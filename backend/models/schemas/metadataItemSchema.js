@@ -7,11 +7,9 @@ const metadataItemSchema = new mongoose.Schema({
 	},
 	price: {
 		type: Number,
-		required: [true, 'price in the metadata is required'],
 	},
 	currency: {
 		type: String,
-		required: [true, 'currency in the metadata is required'],
 	},
 }, { _id: false });
 

@@ -34,9 +34,6 @@ const stockMetadataSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Index for faster lookups
-stockMetadataSchema.index({ symbol: 1 });
-
 const stockMetadataModel = mongoose.model('stockmetadata', stockMetadataSchema);
 
 module.exports = stockMetadataModel;

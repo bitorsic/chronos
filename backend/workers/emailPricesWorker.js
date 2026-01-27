@@ -12,7 +12,8 @@ const emailPricesWorker = new Worker(
 	'email-prices',
 	async (job) => {
 		const { jobId } = job.data;
-		console.log(`[EmailPricesWorker] Processing job: ${jobId}`);
+		const attemptNumber = job.attemptsMade + 1;
+		console.log(`[EmailPricesWorker] Processing job: ${jobId} (attempt ${attemptNumber})`);
 
 		try {
 			// Fetch job details from MongoDB
@@ -70,12 +71,8 @@ const emailPricesWorker = new Worker(
 			// Prepare email content using template
 			const emailContent = emailTemplates.STOCK_PRICES(metadata);
 
-			// Send email
-			await sendEmail({
-				to,
-				subject: emailContent.subject,
-				html: emailContent.html,
-			});
+			// Send email (sendEmail expects positional args: to, subject, text, attachmentObj, html)
+			await sendEmail(to, emailContent.subject, null, null, emailContent.html);
 
 			console.log(`[EmailPricesWorker] Email sent successfully to ${to}`);
 
@@ -84,6 +81,7 @@ const emailPricesWorker = new Worker(
 				userId,
 				jobId,
 				executionStatus: progressStatuses.SUCCESS,
+				attempt: attemptNumber,
 				emailType: emailTypes.PRICES,
 				to,
 				subject: emailContent.subject,

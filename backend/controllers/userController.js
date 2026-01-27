@@ -37,6 +37,7 @@ const createUser = async (req, res) => {
 			temporaryPassword: password, // Send in response as backup
 		});
 	} catch (err) {
+		console.error(err);
 		const [status, message] = handleError(err);
 		res.status(status).send({ message });
 	}
@@ -48,6 +49,7 @@ const getAllAdmins = async (req, res) => {
 		const admins = await userModel.find({ role: roles.ADMIN }).select('-password');
 		res.status(200).send({ admins });
 	} catch (err) {
+		console.error(err);
 		const [status, message] = handleError(err);
 		res.status(status).send({ message });
 	}
@@ -59,6 +61,7 @@ const getAllClients = async (req, res) => {
 		const clients = await userModel.find({ role: roles.CLIENT }).select('-password');
 		res.status(200).send({ clients });
 	} catch (err) {
+		console.error(err);
 		const [status, message] = handleError(err);
 		res.status(status).send({ message });
 	}
@@ -105,6 +108,7 @@ const login = async (req, res) => {
 			},
 		});
 	} catch (err) {
+		console.error(err);
 		const [status, message] = handleError(err);
 		res.status(status).send({ message });
 	}
@@ -133,6 +137,7 @@ const refreshToken = async (req, res) => {
 			accessToken,
 		});
 	} catch (err) {
+		console.error(err);
 		const [status, message] = handleError(err);
 		res.status(status).send({ message });
 	}
@@ -163,6 +168,7 @@ const forgotPassword = async (req, res) => {
 			resetToken, // In production, don't send this in response, send via email
 		});
 	} catch (err) {
+		console.error(err);
 		const [status, message] = handleError(err);
 		res.status(status).send({ message });
 	}
@@ -185,6 +191,7 @@ const resetPassword = async (req, res) => {
 
 		res.status(200).send({ message: 'Password reset successfully' });
 	} catch (err) {
+		console.error(err);
 		const [status, message] = handleError(err);
 		res.status(status).send({ message });
 	}
@@ -231,6 +238,7 @@ const editUser = async (req, res) => {
 			},
 		});
 	} catch (err) {
+		console.error(err);
 		const [status, message] = handleError(err);
 		res.status(status).send({ message });
 	}
@@ -248,6 +256,7 @@ const getUserInfo = async (req, res) => {
 
 		res.status(200).send({ user });
 	} catch (err) {
+		console.error(err);
 		const [status, message] = handleError(err);
 		res.status(status).send({ message });
 	}

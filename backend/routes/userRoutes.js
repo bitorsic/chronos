@@ -21,7 +21,7 @@ router.post('/forgot-password', forgotPassword);
 router.post('/reset-password', resetPassword);
 
 // Admin only routes
-router.post('/users', verifyToken(), createUser); // Create admin or client
+router.post('/', verifyToken(), createUser); // Create admin or client
 router.get('/admins', verifyToken(), getAllAdmins);
 router.get('/clients', verifyToken(), getAllClients);
 

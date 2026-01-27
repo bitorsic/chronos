@@ -26,7 +26,7 @@ const executionSchema = new mongoose.Schema({
 		type: Number,
 		required: [true, 'Attempt number is required'],
 	},
-}, { discriminatorKey: 'type' });
+}, { discriminatorKey: 'type', timestamps: true });
 
 const executionModel = mongoose.model('executions', executionSchema);
 
@@ -38,11 +38,9 @@ const storageExecutionModel = executionModel.discriminator(executionTypes.STORAG
 	},
 	price: {
 		type: Number,
-		required: [true, 'price is required for storage execution'],
 	},
 	currency: {
 		type: String,
-		required: [true, 'currency is required for storage execution'],
 	},
 	fetchedAt: {
 		type: Date,
